@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#0b7a3b" />
 <title>GoGolfy — Scan to Ride</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
     --green:#0b7a3b; --green-dark:#075c2c; --green-light:#e9f7ef;
@@ -176,11 +178,33 @@
   .dcard .d-fare{font-weight:800;color:var(--green-dark);font-size:1.15rem;white-space:nowrap;}
   .dcard .d-badges{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
   .badge{font-size:.68rem;font-weight:800;padding:3px 8px;border-radius:20px;background:var(--bg);color:var(--muted);}
-  .badge.new{background:#fff3cf;color:#8a6300;} .badge.pay{background:#efe6ff;color:#4615a8;}
+  .badge.new{background:#fff3cf;color:#8a6300;} .badge.pay{background:#efe6ff;color:#4615a8;} .badge.cash{background:#e9f7ef;color:var(--green-dark);}
   .dcard .d-actions{display:flex;gap:8px;margin-top:11px;}
   .dcard .d-actions button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fff;font-weight:800;cursor:pointer;font-size:.85rem;color:var(--ink);}
   .dcard .d-actions button.act{background:var(--green);color:#fff;border-color:var(--green);}
   .dash-empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:.95rem;}
+
+  /* logo */
+  .logo-cart{height:34px;width:auto;flex:0 0 auto;}
+  .brand-text{font-weight:800;font-size:1.45rem;letter-spacing:.3px;}
+  /* compound map (Leaflet) */
+  #mapBox{width:100%;height:300px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
+  .map-hint{font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px;}
+  .gg-pin{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;
+    font-weight:800;font-size:13px;border:2px solid var(--green);background:#fff;color:#15241c;box-shadow:0 1px 5px rgba(0,0,0,.35);}
+  .gg-pin.pk{background:var(--green);color:#fff;border-color:var(--green);}
+  .gg-pin.ds{background:var(--accent);border-color:#e0a106;color:#15241c;}
+  .leaflet-container{font-family:inherit;}
+  /* admin toggle */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;}
+  .toggle-row .tg-label{font-weight:700;font-size:.9rem;}
+  .switch{position:relative;width:50px;height:28px;flex:0 0 auto;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:#cdd8d1;border-radius:28px;transition:.2s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider{background:var(--green);}
+  .switch input:checked + .slider:before{transform:translateX(22px);}
+  textarea#autoReply{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-family:inherit;background:#fff;color:var(--ink);resize:vertical;}
 
   @media print{
     body{background:#fff;}
@@ -196,8 +220,21 @@
 <div class="wrap">
   <header>
     <button class="hbtn lang" id="langBtn">EN</button>
-    <button class="hbtn gear" id="gearBtn" title="Admin" aria-label="Admin">⚙️</button>
-    <div class="brand"><span class="cart">🛺</span><span>GoGolfy</span></div>
+    <button class="hbtn gear hidden" id="gearBtn" title="Admin" aria-label="Admin">⚙️</button>
+    <div class="brand">
+      <svg class="logo-cart" viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="#ffffff">
+          <rect x="18" y="14" width="86" height="9" rx="4.5"/>
+          <path d="M104 14 h10 a4 4 0 0 1 4 4 v5 h-14 z"/>
+          <rect x="24" y="21" width="6" height="22" rx="3"/>
+          <rect x="98" y="21" width="6" height="22" rx="3"/>
+          <path d="M14 56 v-9 a5 5 0 0 1 5 -5 h66 a5 5 0 0 1 3.5 1.5 l11 11 h17 a4 4 0 0 1 4 4 h-18 a12 12 0 0 0 -24 0 h-24 a12 12 0 0 0 -24 0 h-3 a5 5 0 0 1 -5 -3.5 z"/>
+        </g>
+        <circle cx="45" cy="64" r="11" fill="#ffffff"/><circle cx="45" cy="64" r="5" fill="#0b7a3b"/>
+        <circle cx="93" cy="64" r="11" fill="#ffffff"/><circle cx="93" cy="64" r="5" fill="#0b7a3b"/>
+      </svg>
+      <span class="brand-text">GoGolfy</span>
+    </div>
     <div class="compound" id="compoundName">Dar Masr Al Andalous</div>
     <div class="tagline" id="tagline"></div>
   </header>
@@ -215,6 +252,12 @@
           </div>
         </div>
         <div id="pickupPicker" class="hidden" style="margin-top:12px;"><div class="grid" id="pickupGrid"></div></div>
+      </div>
+
+      <div class="card">
+        <div class="label" id="lblMap">🗺️ Compound map</div>
+        <div class="map-wrap" id="mapBox"></div>
+        <div class="map-hint" id="mapHint"></div>
       </div>
 
       <div class="card">
@@ -236,6 +279,17 @@
         </div>
       </div>
 
+      <div class="card">
+        <div class="label" id="lblPhone">📱 Your WhatsApp (optional)</div>
+        <input type="tel" id="clientPhone" inputmode="numeric" placeholder="201xxxxxxxxx"
+          style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;font-family:inherit;background:#fff;color:var(--ink);" />
+      </div>
+
+      <div class="card">
+        <div class="label" id="lblPay">💳 Payment method</div>
+        <div class="rtypes" id="payTypes"></div>
+      </div>
+
       <div class="fare-card">
         <div>
           <div class="lbl" id="lblFare">Fare</div>
@@ -255,7 +309,9 @@
         <p class="lead" id="doneLead"></p>
         <div class="receipt" id="receipt"></div>
         <div class="status-line live-wait" id="statusLine"></div>
+        <div class="pay-title" id="payTitle"></div>
         <button class="pay-btn" id="payBtn"></button>
+        <button class="cash-btn" id="cashBtn"></button>
         <button class="secondary-btn" id="resendBtn"></button>
         <button class="ghost-btn" id="againBtn"></button>
       </div>
@@ -303,6 +359,24 @@
           </div>
           <div class="field"><label>Max residents</label><input type="number" id="cfgMaxRes" min="1" max="20" /></div>
         </div>
+        <div class="field">
+          <label>Admin PIN</label>
+          <div class="desc">Required to open this Settings dashboard. Residents can't see it. Change it from the default (1234).</div>
+          <input type="text" id="cfgPin" inputmode="numeric" placeholder="1234" />
+        </div>
+        <div class="toggle-row">
+          <span class="tg-label">🏠 Home pickup (Premium) — open for residents</span>
+          <label class="switch"><input type="checkbox" id="cfgHome" /><span class="slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <span class="tg-label">💬 WhatsApp driver alert (turn on after WhatsApp API)</span>
+          <label class="switch"><input type="checkbox" id="cfgWa" /><span class="slider"></span></label>
+        </div>
+        <div class="field">
+          <label>Pick-up point labels (on the ground)</label>
+          <div class="desc">One label per line for points 1–12, in order. Set them to match your real gate numbers/signs. Leave a line blank to keep the default.</div>
+          <textarea id="cfgLabels" rows="6" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.9rem;font-family:inherit;background:#fff;color:var(--ink);"></textarea>
+        </div>
 
         <div class="sec-title">Private — per person, by ride distance (EGP)</div>
         <div class="g2">
@@ -343,12 +417,19 @@
           <input type="text" id="cfgChannel" placeholder="gogolfy-darmasr-andalous-7K3p9Qx2" />
         </div>
 
+        <div class="sec-title">Automation (n8n)</div>
+        <div class="field">
+          <label>n8n webhook URL</label>
+          <div class="desc">Each booking & payment is POSTed here as JSON, so n8n can notify the driver/client and save to Google Sheets. Paste the Production URL of your n8n Webhook node.</div>
+          <input type="text" id="cfgWebhook" placeholder="https://your-n8n.app/webhook/gogolfy" />
+        </div>
+
         <button class="save-btn" id="saveSettings">Save settings</button>
         <div class="btn-row"><button id="resetSettings" class="red">Reset to defaults</button></div>
       </div>
 
       <div id="tab-qr" class="hidden">
-        <div class="mini-note">Paste your hosted app URL, then Generate. You get a QR + shareable link for each of the 12 checkpoints, plus a Home-pickup QR and an Admin-dashboard QR. Print and place one at each checkpoint.</div>
+        <div class="mini-note">Paste your hosted app URL, then Generate. You get a QR + shareable link for each of the 12 pick-up points, plus a Home-pickup QR and an Admin-dashboard QR. Print and place one at each pick-up point.</div>
         <div class="field">
           <label>App base URL (where this page is hosted)</label>
           <input type="text" id="cfgBaseUrl" placeholder="https://yoursite.netlify.app/" />
@@ -358,6 +439,11 @@
           <button id="printQr">🖨️ Print</button>
         </div>
         <div class="qr-grid" id="qrGrid"></div>
+
+        <div class="sec-title">WhatsApp auto-reply / share link</div>
+        <div class="mini-note">Paste this as your WhatsApp Business <b>greeting</b> or <b>away</b> message. Anyone who messages you instantly gets the link to open the app, see the map, and make a reservation.</div>
+        <textarea id="autoReply" rows="6" readonly></textarea>
+        <div class="btn-row no-print"><button id="copyAutoReply">📋 Copy auto-reply</button></div>
       </div>
 
       <div id="tab-log" class="hidden">
@@ -406,18 +492,18 @@
 
   // ---- checkpoints: display order + names + underlying CP (for distance) ----
   var CHECKPOINTS=[
-    {cp:7,  en:"Gate 1",       ar:"بوابة 1"},
-    {cp:6,  en:"Checkpoint 2", ar:"نقطة 2"},
-    {cp:5,  en:"Gate 2",       ar:"بوابة 2"},
-    {cp:4,  en:"Checkpoint 4", ar:"نقطة 4"},
-    {cp:3,  en:"Gate 3",       ar:"بوابة 3"},
-    {cp:2,  en:"Checkpoint 6", ar:"نقطة 6"},
-    {cp:1,  en:"Walk Gate",    ar:"بوابة المشاة"},
-    {cp:12, en:"Checkpoint 8", ar:"نقطة 8"},
-    {cp:11, en:"Checkpoint 9", ar:"نقطة 9"},
-    {cp:10, en:"Gate 4",       ar:"بوابة 4"},
-    {cp:9,  en:"Checkpoint 11",ar:"نقطة 11"},
-    {cp:8,  en:"Checkpoint 12",ar:"نقطة 12"}
+    {cp:7,  en:"Gate 1",            ar:"بوابة 1",        lat:29.973550, lng:31.532400},
+    {cp:6,  en:"Pick Up Point 2",  ar:"نقطة استلام 2",  lat:29.973950, lng:31.529900},
+    {cp:5,  en:"Gate 2",            ar:"بوابة 2",        lat:29.973650, lng:31.527500},
+    {cp:4,  en:"Pick Up Point 4",  ar:"نقطة استلام 4",  lat:29.974050, lng:31.525200},
+    {cp:3,  en:"Gate 3",            ar:"بوابة 3",        lat:29.974200, lng:31.523200},
+    {cp:2,  en:"Pick Up Point 6",  ar:"نقطة استلام 6",  lat:29.973750, lng:31.521700},
+    {cp:1,  en:"Walk Gate",         ar:"بوابة المشاة",   lat:29.972945, lng:31.520366},
+    {cp:12, en:"Pick Up Point 8",  ar:"نقطة استلام 8",  lat:29.971500, lng:31.522800},
+    {cp:11, en:"Pick Up Point 9",  ar:"نقطة استلام 9",  lat:29.971250, lng:31.525600},
+    {cp:10, en:"Gate 4",            ar:"بوابة 4",        lat:29.971300, lng:31.528200},
+    {cp:9,  en:"Pick Up Point 11", ar:"نقطة استلام 11", lat:29.971300, lng:31.530400},
+    {cp:8,  en:"Pick Up Point 12", ar:"نقطة استلام 12", lat:29.971950, lng:31.532800}
   ];
   var N=CHECKPOINTS.length; // 12
   // outer-loop cumulative positions (m) from the official workbook
@@ -427,14 +513,19 @@
   var RIDE_TYPES=["private","mixed","premium"];
 
   var DEFAULTS={
-    phone:"", maxRes:6,
+    phone:"201094000115", maxRes:6,
     privT:[600,900],         // Private distance thresholds (m): ≤600 / 600–900 / ≥900
     priv:[20,25,30],         // Private per person by distance band
     mix:[20,20,15],          // Mixed per person for 1 / 2 / 3+
     prem:[50,40,30],         // Premium per person for 1 / 2 / 3+
-    baseUrl:"",
+    baseUrl:"https://gogolfy.net/",               // your domain (used for QR codes & driver link)
     payLink:"https://ipn.eg/S/hatemsully/instapay/4T6VhV",
-    channel:"gogolfy-darmasr-andalous-7K3p9Qx2"   // shared live channel (same on all devices)
+    channel:"gogolfy-darmasr-andalous-7K3p9Qx2",  // shared live channel (same on all devices)
+    webhook:"https://hatemsully.app.n8n.cloud/webhook/gogolfy",  // n8n webhook (Google Sheet + WhatsApp notifications)
+    adminPin:"1234",                               // change this in Admin → Settings
+    homeEnabled:true,                              // admin can open/close Home pickup (Premium)
+    waEnabled:false,                               // WhatsApp driver alert held until API ready
+    labels:[]                                      // optional on-the-ground point labels (override names)
   };
 
   function loadCfg(){ try{ return Object.assign({},DEFAULTS,JSON.parse(lsGet(LS_CFG))||{}); }catch(e){ return Object.assign({},DEFAULTS); } }
@@ -445,14 +536,16 @@
   // ---- translations ----
   var T={
     en:{
-      tagline:"Ride Smart, Live Better · Scan to Ride", compound:"Dar Masr Al Andalous",
+      tagline:"Your ride inside · Scan to Ride", compound:"Dar Masr Al Andalous",
       lblPickup:"📍 Pickup", lblDest:"🎯 Destination", lblRtype:"🚗 Ride type",
-      lblResidents:"👥 Residents", lblFare:"Fare", resUnit:"residents", point:"Point",
+      lblResidents:"👥 Residents", lblPhone:"📱 Your WhatsApp (optional)", lblFare:"Fare", resUnit:"residents", point:"Point",
+      lblMap:"🗺️ Compound map", mapHint:"Tap a point on the map to set your destination", homeClosed:"Home pickup is currently closed — please choose a pickup point.",
+      lblPay:"💳 Payment method", pm_instapay:"InstaPay", pm_cash:"Cash", rPay:"Payment",
       detecting:"Detecting…", selectPickup:"Select your pickup point", change:"Change pickup",
-      detected:"Detected from the QR code at this checkpoint", noqr:"No QR detected — choose where you are",
+      detected:"Detected from the QR code at this pick-up point", noqr:"No QR detected — choose where you are",
       home:"Home pickup", homeSub:"Premium door-to-door pickup",
       confirm:"Confirm & Request Ride", hintPick:"Pick a destination to continue",
-      hintScan:"Scan a checkpoint QR or choose pickup", hintGo:"Tap confirm to alert the driver",
+      hintScan:"Scan a pick-up point QR or choose pickup", hintGo:"Tap confirm to alert the driver",
       selDest:"Select a destination", setBoth:"Set pickup & destination",
       doneTitle:"Ride Requested!", doneLead:"A driver has been notified. Please wait at your pickup point.",
       rPickup:"Pickup", rDest:"Destination", rRes:"Residents", rType:"Ride type", rDist:"Ride distance", rTotal:"Total fare",
@@ -462,17 +555,22 @@
       t_premium:"Premium", d_premium:"Home / door-to-door",
       each:"each", flat:"flat", saved:"✓ Saved", curr:"EGP",
       msgTitle:"GoGolfy Ride Request", msgWaiting:"A resident is waiting. Please proceed to pickup.",
+      msgConfirm:"👉 Open to accept the ride:", pinPrompt:"Enter admin PIN", pinWrong:"Wrong PIN",
       m_pickup:"Pickup", m_drop:"Drop-off", m_res:"Residents", m_type:"Ride type", m_dist:"Distance", m_fare:"Fare",
-      pay:"💳 Pay now (InstaPay)", st_waiting:"Waiting for a driver to accept…",
+      pay:"💳 Pay now (InstaPay)", payTitle:"How would you like to pay?",
+      cash:"💵 Pay cash to driver", paySel:"✓ InstaPay opened", cashSel:"✓ Cash selected — pay the driver",
+      b_cash:"💵 Cash", st_waiting:"Waiting for a driver to accept…",
       st_accepted:"✅ Driver accepted — on the way!", st_arriving:"🚗 Driver is arriving now",
       st_done:"🏁 Ride completed — thank you!", st_paid:"💳 Payment opened in InstaPay",
       driverTitle:"Driver Dashboard", driverSub:"Live ride requests", noRides:"No ride requests yet — waiting…",
       live:"Live", offline:"Offline", b_accept:"Accept", b_arrive:"Arriving", b_done:"Done", b_paid:"💳 Paid"
     },
     ar:{
-      tagline:"اركب بذكاء، عِش أفضل · امسح للركوب", compound:"دار مصر الأندلس",
+      tagline:"رحلتك في الداخل · امسح للركوب", compound:"دار مصر الأندلس",
       lblPickup:"📍 نقطة الانطلاق", lblDest:"🎯 الوجهة", lblRtype:"🚗 نوع الرحلة",
-      lblResidents:"👥 عدد الركاب", lblFare:"الأجرة", resUnit:"راكب", point:"نقطة",
+      lblResidents:"👥 عدد الركاب", lblPhone:"📱 رقم واتساب (اختياري)", lblFare:"الأجرة", resUnit:"راكب", point:"نقطة",
+      lblMap:"🗺️ خريطة الكمبوند", mapHint:"اضغط على نقطة في الخريطة لتحديد وجهتك", homeClosed:"خدمة الاستلام من المنزل مغلقة حاليًا — اختر نقطة انطلاق.",
+      lblPay:"💳 طريقة الدفع", pm_instapay:"إنستاباي", pm_cash:"نقدًا", rPay:"الدفع",
       detecting:"جارٍ التحديد…", selectPickup:"اختر نقطة انطلاقك", change:"تغيير نقطة الانطلاق",
       detected:"تم تحديدها من رمز QR في هذه النقطة", noqr:"لم يُكتشف رمز — اختر مكانك",
       home:"الاستلام من المنزل", homeSub:"خدمة بريميوم من الباب للباب",
@@ -487,8 +585,11 @@
       t_premium:"بريميوم", d_premium:"من المنزل / من الباب للباب",
       each:"للفرد", flat:"ثابت", saved:"✓ تم الحفظ", curr:"ج.م",
       msgTitle:"طلب رحلة GoGolfy", msgWaiting:"أحد السكان في الانتظار. الرجاء التوجه لنقطة الانطلاق.",
+      msgConfirm:"👉 افتح لقبول الرحلة:", pinPrompt:"أدخل رمز المشرف", pinWrong:"رمز غير صحيح",
       m_pickup:"الانطلاق", m_drop:"الوجهة", m_res:"الركاب", m_type:"نوع الرحلة", m_dist:"المسافة", m_fare:"الأجرة",
-      pay:"💳 ادفع الآن (إنستاباي)", st_waiting:"في انتظار قبول السائق…",
+      pay:"💳 ادفع الآن (إنستاباي)", payTitle:"كيف تحب أن تدفع؟",
+      cash:"💵 الدفع نقدًا للسائق", paySel:"✓ تم فتح إنستاباي", cashSel:"✓ تم اختيار النقد — ادفع للسائق",
+      b_cash:"💵 نقدًا", st_waiting:"في انتظار قبول السائق…",
       st_accepted:"✅ قبل السائق — في الطريق إليك!", st_arriving:"🚗 السائق يصل الآن",
       st_done:"🏁 اكتملت الرحلة — شكرًا لك!", st_paid:"💳 تم فتح الدفع في إنستاباي",
       driverTitle:"لوحة السائق", driverSub:"طلبات الرحلات المباشرة", noRides:"لا توجد طلبات بعد — في الانتظار…",
@@ -496,7 +597,7 @@
     }
   };
   function t(k){ return (T[lang]&&T[lang][k]!=null)?T[lang][k]:T.en[k]; }
-  function cpName(i){ return CHECKPOINTS[i-1]?(lang==="ar"?CHECKPOINTS[i-1].ar:CHECKPOINTS[i-1].en):("#"+i); }
+  function cpName(i){ var ov=cfg.labels&&cfg.labels[i-1]; if(ov&&String(ov).trim()) return String(ov).trim(); return CHECKPOINTS[i-1]?(lang==="ar"?CHECKPOINTS[i-1].ar:CHECKPOINTS[i-1].en):("#"+i); }
   function typeName(ty){ return t("t_"+ty); }
   function money(v){ var n=Math.round(v*100)/100; return lang==="ar"?(n+" "+t("curr")):(t("curr")+" "+n); }
 
@@ -518,18 +619,21 @@
   var BAND_COLORS=["var(--band1)","var(--band2)","var(--band3)"];
 
   // ---- state ----
-  var state={ pickup:null, destination:null, residents:1, rideType:"private", home:false, driver:false };
+  var state={ pickup:null, destination:null, residents:1, rideType:"private", home:false, driver:false, payMethod:"cash" };
   function $(id){ return document.getElementById(id); }
 
   function parseUrl(){
     var q=new URLSearchParams(location.search);
-    if(q.get("ride")==="home"){ state.home=true; state.pickup="home"; state.rideType="premium"; }
+    if(q.get("ride")==="home"){
+      if(cfg.homeEnabled!==false){ state.home=true; state.pickup="home"; state.rideType="premium"; }
+      else { state.homeBlocked=true; }
+    }
     else{
       var p=q.get("pickup"); if(!p&&location.hash) p=location.hash.replace(/[^0-9]/g,"");
       var n=parseInt(p,10); if(n>=1&&n<=N) state.pickup=n;
     }
     if(q.get("driver")==="1") state.driver=true;
-    if(q.get("admin")==="1") setTimeout(openAdmin,150);
+    if(q.get("admin")==="1") setTimeout(function(){ requireAdmin(openAdmin); },200);
   }
 
   // ---- rendering ----
@@ -540,7 +644,8 @@
     $("langBtn").textContent=t("langBtn");
     $("lblPickup").textContent=t("lblPickup"); $("lblDest").textContent=t("lblDest");
     $("lblRtype").textContent=t("lblRtype"); $("lblResidents").textContent=t("lblResidents");
-    $("lblFare").textContent=t("lblFare"); $("resUnit").textContent=t("resUnit");
+    $("lblFare").textContent=t("lblFare"); $("resUnit").textContent=t("resUnit"); $("lblPhone").textContent=t("lblPhone");
+    $("lblMap").textContent=t("lblMap"); $("mapHint").textContent=t("mapHint"); $("lblPay").textContent=t("lblPay");
     $("pinTxt").textContent=t("point"); $("changePickup").textContent=t("change");
     $("confirmTxt").textContent=t("confirm");
     $("doneTitle").textContent=t("doneTitle"); $("doneLead").textContent=t("doneLead");
@@ -557,7 +662,7 @@
       $("changePickup").classList.remove("hidden");
     }else{
       $("pickupNum").textContent="?"; $("pinTxt").textContent=t("point");
-      $("pickupName").textContent=t("selectPickup"); $("pickupSub").textContent=t("noqr");
+      $("pickupName").textContent=t("selectPickup"); $("pickupSub").textContent=state.homeBlocked?t("homeClosed"):t("noqr");
       $("changePickup").classList.remove("hidden"); $("pickupPicker").classList.remove("hidden");
     }
   }
@@ -573,10 +678,42 @@
     })(i);}
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
-  function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateFare(); },function(n){ return n===state.pickup; }); }
+  function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
+  // ---- real map (Leaflet + satellite/street) ----
+  var ggMap=null, ggMarkers={}, ggRoute=null;
+  function ptLatLng(i){ var c=CHECKPOINTS[i-1]; return [c.lat, c.lng]; }
+  function pinIcon(i,type){ var cls='gg-pin'+(type==='pk'?' pk':(type==='ds'?' ds':'')); return L.divIcon({className:'', html:'<div class="'+cls+'">'+i+'</div>', iconSize:[28,28], iconAnchor:[14,14]}); }
+  function initMap(){
+    if(ggMap || state.driver || typeof L==='undefined') return;
+    var box=$("mapBox"); if(!box || $("screen-book").classList.contains("hidden")) return;
+    ggMap=L.map(box,{zoomControl:true});
+    var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:'Tiles &copy; Esri'});
+    var street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap'});
+    sat.addTo(ggMap);
+    L.control.layers({'Satellite':sat,'Street':street},null,{position:'topright'}).addTo(ggMap);
+    var pts=[];
+    for(var i=1;i<=N;i++){(function(n){
+      var ll=ptLatLng(n); pts.push(ll);
+      var m=L.marker(ll,{icon:pinIcon(n,'')}).addTo(ggMap);
+      m.on('click',function(){ if(!state.home && !state.pickup){ state.pickup=n; } else if(n!==state.pickup){ state.destination=n; } renderAll(); });
+      m.bindTooltip(cpName(n),{direction:'top'});
+      ggMarkers[n]=m;
+    })(i);}
+    ggMap.fitBounds(pts,{padding:[28,28]});
+    setTimeout(function(){ if(ggMap) ggMap.invalidateSize(); },250);
+  }
+  function updateMap(){
+    if(!ggMap){ initMap(); }
+    if(!ggMap) return;
+    for(var i=1;i<=N;i++){ var type=(!state.home&&state.pickup===i)?'pk':(state.destination===i?'ds':'');
+      if(ggMarkers[i]){ ggMarkers[i].setIcon(pinIcon(i,type)); ggMarkers[i].setTooltipContent(cpName(i)); } }
+    if(ggRoute){ ggMap.removeLayer(ggRoute); ggRoute=null; }
+    if(!state.home && state.pickup && state.destination){ ggRoute=L.polyline([ptLatLng(state.pickup),ptLatLng(state.destination)],{color:'#e0a106',weight:4,dashArray:'6 6'}).addTo(ggMap); }
+  }
   function renderRtypes(){
     var box=$("rtypes"); box.innerHTML="";
-    var list=state.home?["premium"]:RIDE_TYPES;
+    var list=state.home?["premium"]:(cfg.homeEnabled!==false?RIDE_TYPES:["private","mixed"]);
+    if(!state.home && state.rideType==="premium" && cfg.homeEnabled===false) state.rideType="private";
     list.forEach(function(ty){
       var b=document.createElement("button"); b.className="rt"+(state.rideType===ty?" sel":"");
       b.innerHTML='<div class="rt-t">'+typeName(ty)+'</div><div class="rt-d">'+t("d_"+ty)+'</div>';
@@ -584,6 +721,13 @@
       box.appendChild(b);
     });
     $("rtCard").classList.toggle("hidden", state.home); // home is always premium; hide selector
+  }
+  function renderPay(){
+    if(state.payMethod==="instapay" && !cfg.payLink) state.payMethod="cash";
+    var box=$("payTypes"); if(!box) return; box.innerHTML="";
+    var opts=[]; if(cfg.payLink) opts.push(["instapay","💳 "+t("pm_instapay")]); opts.push(["cash","💵 "+t("pm_cash")]);
+    opts.forEach(function(o){ var b=document.createElement("button"); b.className="rt"+(state.payMethod===o[0]?" sel":"");
+      b.innerHTML='<div class="rt-t">'+o[1]+'</div>'; b.addEventListener("click",function(){ state.payMethod=o[0]; renderPay(); }); box.appendChild(b); });
   }
   function renderRes(){ $("resVal").textContent=state.residents; $("minusBtn").disabled=state.residents<=1; $("plusBtn").disabled=state.residents>=Number(cfg.maxRes); }
 
@@ -607,19 +751,22 @@
       $("confirmBtn").disabled=true; $("confirmHint").textContent=state.pickup?t("hintPick"):t("hintScan");
     }
   }
-  function renderAll(){ applyStaticText(); renderPickup(); renderPickupGrid(); renderDest(); renderRtypes(); renderRes(); updateFare(); }
+  function renderAll(){ applyStaticText(); renderPickup(); renderPickupGrid(); renderDest(); updateMap(); renderRtypes(); renderPay(); renderRes(); updateFare(); }
 
   // ---- confirm / notify ----
   function pickupLabel(){ return state.home?t("home"):cpName(state.pickup); }
   function pickupTag(){ return state.home?"🏠":("#"+state.pickup); }
+  function driverLink(){ var u=cfg.baseUrl||""; if(!u) return ""; return u+(u.indexOf("?")>=0?"&":"?")+"driver=1"; }
   function buildMessage(b){
+    var dl=driverLink();
     return "🛺 *"+t("msgTitle")+"*\n"+t("compound")+"\n————————————\n"
       +"📍 "+t("m_pickup")+": "+b.pickupName+" ("+b.pickupTag+")\n"
       +"🎯 "+t("m_drop")+": "+b.destName+" (#"+b.destination+")\n"
       +"🚗 "+t("m_type")+": "+b.typeName+"\n"
       +"👥 "+t("m_res")+": "+b.residents+"\n"
       +(b.distance!=null?("📏 "+t("m_dist")+": ~"+b.distance+" m\n"):"")
-      +"💵 "+t("m_fare")+": "+b.fareStr+"\n🕒 "+b.timeStr+"\n————————————\n"+t("msgWaiting");
+      +"💵 "+t("m_fare")+": "+b.fareStr+"\n🕒 "+b.timeStr+"\n————————————\n"+t("msgWaiting")
+      +(dl?("\n"+t("msgConfirm")+" "+dl):"");
   }
   function notifyDriver(b){
     var text=encodeURIComponent(buildMessage(b));
@@ -633,18 +780,28 @@
       destination:state.destination, destName:cpName(state.destination), residents:state.residents,
       rideType:state.rideType, typeName:typeName(state.rideType),
       distance:(f.dist==null?null:Math.round(f.dist)), fare:Math.round(f.total*100)/100, fareStr:money(f.total),
-      time:now.toISOString(), timeStr:now.toLocaleString(), timeShort:now.toLocaleTimeString() };
+      clientPhone:(($("clientPhone")&&$("clientPhone").value)||"").replace(/[^0-9]/g,""), driverPhone:(cfg.phone||""),
+      lang:lang, time:now.toISOString(), timeStr:now.toLocaleString(), timeShort:now.toLocaleTimeString() };
   }
   function pushLog(b){ var log=[]; try{ log=JSON.parse(lsGet(LS_LOG))||[]; }catch(e){} log.unshift(b); if(log.length>300) log=log.slice(0,300); lsSet(LS_LOG,JSON.stringify(log)); }
   var lastBooking=null;
   function doConfirm(){
     if(!(state.pickup&&state.destination)) return;
     bookingId=newId();
-    var b=currentBooking(); b.id=bookingId;
-    lastBooking=b; pushLog(b); notifyDriver(b);
-    publish(b);                       // broadcast to the live driver dashboard
+    var b=currentBooking(); b.id=bookingId; b.payment=state.payMethod; b.event="booking";
+    lastBooking=b; pushLog(b);
+    if(cfg.waEnabled) notifyDriver(b);                 // WhatsApp held until API ready
+    var pub=Object.assign({},b); delete pub.clientPhone; delete pub.driverPhone;
+    publish(pub);                     // live driver dashboard (ntfy — public, no phone numbers)
+    webhookPost(b);                   // n8n automation (private — Google Sheet + Telegram/WhatsApp)
+    if(state.payMethod==="instapay" && cfg.payLink) window.open(cfg.payLink,"_blank");
     showReceipt(b);
     setResidentStatus("waiting"); listenStatus();
+  }
+  function flashBtn(el,txt){ if(!el) return; var o=el.getAttribute("data-orig")||el.textContent; el.setAttribute("data-orig",o); el.textContent=txt; clearTimeout(el._ft); el._ft=setTimeout(function(){ el.textContent=el.getAttribute("data-orig"); },2000); }
+  function reportPayment(b,method){
+    publish({kind:"status",id:b.id,status:(method==="cash"?"cash":"paid")});
+    webhookPost(Object.assign({},b,{event:"payment",payment:method}));
   }
   function rowEl(k,v){ return '<div class="row"><span class="k">'+k+'</span><span class="v">'+esc(v)+'</span></div>'; }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
@@ -655,16 +812,28 @@
       rowEl(t("rType"),b.typeName)+
       rowEl(t("rRes"),String(b.residents))+
       (b.distance!=null?rowEl(t("rDist"),"~"+b.distance+" m"):"")+
+      rowEl(t("rPay"), b.payment==="instapay"?t("pm_instapay"):t("pm_cash"))+
       '<div class="row total"><span class="k">'+t("rTotal")+'</span><span class="v">'+esc(b.fareStr)+'</span></div>';
-    var pb=$("payBtn");
-    if(cfg.payLink){ pb.classList.remove("hidden"); pb.textContent=t("pay");
-      pb.onclick=function(){ window.open(cfg.payLink,"_blank"); publish({kind:"status",id:bookingId,status:"paid"}); }; }
+    var pb=$("payBtn"), cb=$("cashBtn");
+    $("payTitle").textContent="";
+    cb.classList.add("hidden");
+    if(b.payment==="instapay" && cfg.payLink){ pb.classList.remove("hidden"); pb.textContent=t("pay"); pb.onclick=function(){ window.open(cfg.payLink,"_blank"); }; }
     else pb.classList.add("hidden");
+    $("resendBtn").classList.toggle("hidden", !cfg.waEnabled);
     $("screen-book").classList.add("hidden"); $("screen-done").classList.remove("hidden"); window.scrollTo(0,0);
   }
-  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; state.destination=null; state.residents=1; if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); window.scrollTo(0,0); }
+  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); setTimeout(function(){ if(ggMap) ggMap.invalidateSize(); },120); window.scrollTo(0,0); }
 
   // ---- admin ----
+  var adminAuthedMem=false;
+  function isAdminAuthed(){ try{ return sessionStorage.getItem("gg_admin")==="1"; }catch(e){ return adminAuthedMem; } }
+  function setAdminAuthed(){ try{ sessionStorage.setItem("gg_admin","1"); }catch(e){ adminAuthedMem=true; } $("gearBtn").classList.remove("hidden"); }
+  function requireAdmin(cb){
+    if(isAdminAuthed()){ $("gearBtn").classList.remove("hidden"); cb(); return; }
+    var pin=prompt(t("pinPrompt"));
+    if(pin===null) return;
+    if(String(pin)===String(cfg.adminPin||"")){ setAdminAuthed(); cb(); } else alert(t("pinWrong"));
+  }
   function openAdmin(){ fillSettings(); $("adminOverlay").classList.remove("hidden"); }
   function closeAdmin(){ $("adminOverlay").classList.add("hidden"); }
   function switchTab(name){
@@ -672,28 +841,42 @@
     document.querySelectorAll(".tab").forEach(function(el){ el.classList.toggle("active",el.getAttribute("data-tab")===name); });
     if(name==="log") renderLog();
     if(name==="qr"&&!$("cfgBaseUrl").value) $("cfgBaseUrl").value=cfg.baseUrl||defaultBaseUrl();
+    if(name==="qr") $("autoReply").value=buildAutoReply();
+  }
+  function buildAutoReply(){
+    var u=cfg.baseUrl||"https://gogolfy.net/";
+    return "🛺 GoGolfy — "+t("compound")+"\n"
+      +"احجز رحلتك الآن / Book your ride now:\n"+u+"\n"
+      +"افتح الرابط، اختر وجهتك من الخريطة وأكّد — وسيصلك سائق.\n"
+      +"Open the link, pick your destination on the map & confirm — a driver will be notified.";
   }
   function fillSettings(){
     $("storeNote").textContent=storageOK()?"Settings save on this device.":"⚠ This browser is blocking storage (private mode / opened from disk). Settings work for now but won't persist after closing — host the app to make them stick.";
     $("storeNote").className="mini-note"+(storageOK()?"":" warn-note");
-    $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes;
+    $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true; $("cfgLabels").value=(cfg.labels||[]).join("\n");
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
     $("cfgP1").value=cfg.priv[0]; $("cfgP2").value=cfg.priv[1]; $("cfgP3").value=cfg.priv[2];
     $("cfgM1").value=cfg.mix[0]; $("cfgM2").value=cfg.mix[1]; $("cfgM3").value=cfg.mix[2];
     $("cfgPr1").value=cfg.prem[0]; $("cfgPr2").value=cfg.prem[1]; $("cfgPr3").value=cfg.prem[2];
     $("cfgPayLink").value=cfg.payLink||""; $("cfgChannel").value=cfg.channel||"";
+    $("cfgWebhook").value=cfg.webhook||"";
     $("cfgBaseUrl").value=cfg.baseUrl||"";
   }
   function numv(id,d){ var v=Number($(id).value); return isNaN(v)?d:v; }
   function saveSettings(){
     cfg.phone=$("cfgPhone").value.replace(/[^0-9]/g,"");
     cfg.maxRes=Math.max(1,parseInt($("cfgMaxRes").value,10)||6);
+    cfg.adminPin=$("cfgPin").value.trim()||"1234";
+    cfg.homeEnabled=$("cfgHome").checked;
+    cfg.waEnabled=$("cfgWa").checked;
+    cfg.labels=$("cfgLabels").value.split("\n").map(function(s){return s.trim();}).slice(0,N);
     cfg.privT=[numv("cfgPt1",600),numv("cfgPt2",900)];
     cfg.priv=[numv("cfgP1",20),numv("cfgP2",25),numv("cfgP3",30)];
     cfg.mix=[numv("cfgM1",20),numv("cfgM2",20),numv("cfgM3",15)];
     cfg.prem=[numv("cfgPr1",50),numv("cfgPr2",40),numv("cfgPr3",30)];
     cfg.payLink=$("cfgPayLink").value.trim();
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
+    cfg.webhook=$("cfgWebhook").value.trim();
     cfg.baseUrl=$("cfgBaseUrl").value.trim();
     saveCfg();
     if(state.driver) connectDash();
@@ -702,7 +885,7 @@
     renderAll();
     flash("saveSettings",t("saved"));
   }
-  function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
+  function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
   function flash(id,txt){ var el=$(id); var old=el.textContent; el.textContent=txt; setTimeout(function(){ el.textContent=old; },1400); }
   function defaultBaseUrl(){ return location.protocol==="file:"?"":(location.origin+location.pathname); }
 
@@ -751,11 +934,12 @@
   function newId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function chanBase(){ return "https://ntfy.sh/"+encodeURIComponent(cfg.channel||""); }
   function publish(obj){ if(!cfg.channel) return; try{ fetch(chanBase(),{method:"POST",body:JSON.stringify(obj)}); }catch(e){} }
+  function webhookPost(obj){ if(!cfg.webhook) return; try{ fetch(cfg.webhook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(obj),keepalive:true}); }catch(e){} }
   function listenStatus(){
     if(es){ try{es.close();}catch(e){} es=null; }
     if(!cfg.channel) return;
     try{ es=new EventSource(chanBase()+"/sse?since=5s"); }catch(e){ return; }
-    es.onmessage=function(ev){ try{ var d=JSON.parse(ev.data); if(d&&d.event==="message"&&d.message){ var m=JSON.parse(d.message); if(m&&m.kind==="status"&&m.id===bookingId&&m.status!=="paid") setResidentStatus(m.status); } }catch(e){} };
+    es.onmessage=function(ev){ try{ var d=JSON.parse(ev.data); if(d&&d.event==="message"&&d.message){ var m=JSON.parse(d.message); if(m&&m.kind==="status"&&m.id===bookingId&&m.status!=="paid"&&m.status!=="cash") setResidentStatus(m.status); } }catch(e){} };
   }
   function setResidentStatus(stKey){
     var el=$("statusLine"); if(!el) return;
@@ -789,11 +973,13 @@
     if(m.kind==="ride"){
       var isNew=!rides[m.id];
       var prev=rides[m.id]||{};
-      rides[m.id]=Object.assign({},m,{status:prev.status||"new",paid:prev.paid||false});
+      rides[m.id]=Object.assign({},m,{status:prev.status||"new",payMethod:prev.payMethod||(m.payment==="instapay"?"instapay":(m.payment==="cash"?"cash":null))});
       if(isNew){ order.unshift(m.id); if(dashReady) beep(); }
       renderDash();
     }else if(m.kind==="status"&&rides[m.id]){
-      if(m.status==="paid") rides[m.id].paid=true; else rides[m.id].status=m.status;
+      if(m.status==="paid") rides[m.id].payMethod="instapay";
+      else if(m.status==="cash") rides[m.id].payMethod="cash";
+      else rides[m.id].status=m.status;
       renderDash();
     }
   }
@@ -804,7 +990,8 @@
     if(!order.length){ box.innerHTML='<div class="dash-empty">'+esc(t("noRides"))+'</div>'; return; }
     box.innerHTML=order.map(function(id){
       var r=rides[id], st=r.status||"new";
-      var badges='<span class="badge '+(st==="new"?"new":"")+'">'+esc(stLabel(st))+'</span>'+(r.paid?'<span class="badge pay">'+esc(t("b_paid"))+'</span>':'');
+      var payBadge=r.payMethod==="cash"?'<span class="badge cash">'+esc(t("b_cash"))+'</span>':(r.payMethod==="instapay"?'<span class="badge pay">'+esc(t("b_paid"))+'</span>':'');
+      var badges='<span class="badge '+(st==="new"?"new":"")+'">'+esc(stLabel(st))+'</span>'+payBadge;
       var dist=(r.distance!=null)?(" · ~"+r.distance+" m"):"";
       return '<div class="dcard s-'+st+'"><div class="d-top"><div>'
         +'<div class="d-route">'+esc(r.pickupName)+' → '+esc(r.destName)+'</div>'
@@ -832,7 +1019,8 @@
     $("confirmBtn").addEventListener("click",doConfirm);
     $("againBtn").addEventListener("click",resetBooking);
     $("resendBtn").addEventListener("click",function(){ if(lastBooking) notifyDriver(lastBooking); });
-    $("gearBtn").addEventListener("click",openAdmin);
+    $("gearBtn").addEventListener("click",function(){ requireAdmin(openAdmin); });
+    if(isAdminAuthed()) $("gearBtn").classList.remove("hidden");
     $("adminClose").addEventListener("click",closeAdmin);
     $("adminOverlay").addEventListener("click",function(e){ if(e.target===$("adminOverlay")) closeAdmin(); });
     document.querySelectorAll(".tab").forEach(function(tb){ tb.addEventListener("click",function(){ switchTab(tb.getAttribute("data-tab")); }); });
@@ -840,6 +1028,7 @@
     $("resetSettings").addEventListener("click",resetSettings);
     $("genQr").addEventListener("click",genQr);
     $("printQr").addEventListener("click",function(){ window.print(); });
+    $("copyAutoReply").addEventListener("click",function(){ var b=$("copyAutoReply"); navigator.clipboard&&navigator.clipboard.writeText($("autoReply").value); var o=b.textContent; b.textContent="✓ Copied"; setTimeout(function(){ b.textContent=o; },1400); });
     $("exportLog").addEventListener("click",exportCsv);
     $("clearLog").addEventListener("click",function(){ if(confirm("Clear all booking history on this device?")){ lsDel(LS_LOG); renderLog(); } });
   }
