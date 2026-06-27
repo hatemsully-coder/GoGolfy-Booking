@@ -103,7 +103,9 @@
 
   .modal-overlay{position:fixed;inset:0;background:rgba(13,30,21,.55);display:flex;align-items:flex-start;justify-content:center;padding:18px;z-index:50;overflow:auto;}
   .modal{background:#fff;border-radius:20px;max-width:600px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-  .modal-head{background:var(--green);color:#fff;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .modal-head{background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .modal-head .mh-brand{display:flex;align-items:center;gap:10px;}
+  .modal-head .mh-logo{width:30px;height:auto;flex:0 0 auto;}
   .modal-head h3{margin:0;font-size:1.1rem;}
   .modal-close{background:rgba(255,255,255,.2);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1.1rem;cursor:pointer;}
   .modal-body{padding:18px;max-height:78vh;overflow:auto;}
@@ -159,9 +161,16 @@
   @keyframes blink{50%{opacity:.25}}
 
   /* driver dashboard */
-  .dash-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .dash-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;
+    background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;border-radius:18px;padding:15px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+  .dash-head:after{content:"";position:absolute;bottom:-40px;inset-inline-end:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);}
+  .dash-head .dh-logo{width:38px;height:auto;flex:0 0 auto;position:relative;}
+  .dash-head .dh-text{flex:1;position:relative;}
   .dash-head .dh-t{font-weight:800;font-size:1.25rem;}
-  .dash-head .dh-s{font-size:.78rem;color:var(--muted);}
+  .dash-head .dh-s{font-size:.78rem;opacity:.92;}
+  .dash-head .livedot{position:relative;background:rgba(255,255,255,.2);color:#fff;}
+  .dash-head .livedot .d{background:#8effb0;}
+  .dash-head .livedot.off{background:rgba(255,255,255,.2);color:#ffd9d4;} .dash-head .livedot.off .d{background:#ff7a6b;}
   .livedot{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:800;padding:6px 10px;border-radius:20px;background:var(--green-light);color:var(--green-dark);}
   .livedot .d{width:9px;height:9px;border-radius:50%;background:var(--green);}
   .livedot.off{background:#fdecea;color:var(--danger);} .livedot.off .d{background:var(--danger);animation:none;}
@@ -214,12 +223,20 @@
   .gg-pin{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:800;font-size:13px;border:2px solid var(--green);background:#fff;color:#15241c;box-shadow:0 1px 5px rgba(0,0,0,.35);}
   .leaflet-container{font-family:inherit;}
   /* landing page */
-  .home{padding:4px 2px 20px;}
-  .home .hero{text-align:center;padding:14px 14px 6px;}
-  .home .hero h1{font-size:1.7rem;color:var(--green-dark);margin:8px 0 4px;font-weight:800;}
-  .home .hero p{color:var(--muted);margin:0 auto 16px;max-width:340px;}
-  .home .cta{width:100%;}
-  .home-steps{display:grid;gap:10px;margin:18px 0;}
+  .home{padding:2px 2px 22px;}
+  .home .hero{text-align:center;padding:26px 18px 22px;border-radius:22px;
+    background:radial-gradient(120% 90% at 50% 0%, #eafaf0 0%, #ffffff 70%);
+    border:1px solid var(--line);box-shadow:0 10px 30px rgba(11,122,59,.10);position:relative;overflow:hidden;}
+  .home .hero:before{content:"";position:absolute;top:-40px;inset-inline-start:-40px;width:140px;height:140px;border-radius:50%;background:rgba(11,122,59,.07);}
+  .home .hero:after{content:"";position:absolute;bottom:-50px;inset-inline-end:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,210,63,.18);}
+  .hero-badge{position:relative;display:inline-block;background:var(--green);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.5px;padding:6px 14px;border-radius:20px;margin:8px 0 6px;box-shadow:var(--shadow);}
+  .home .hero h1{position:relative;font-size:2rem;color:var(--green-dark);margin:6px 0 6px;font-weight:800;line-height:1.15;}
+  .home .hero p{position:relative;color:var(--muted);margin:0 auto 18px;max-width:330px;font-size:1.02rem;line-height:1.5;}
+  .home .cta{position:relative;width:100%;background:linear-gradient(135deg,var(--green),var(--green-dark));font-size:1.15rem;padding:17px;box-shadow:0 10px 24px rgba(11,122,59,.28);}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;position:relative;}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 12px;font-size:.76rem;font-weight:700;color:var(--green-dark);box-shadow:0 1px 5px rgba(0,0,0,.05);}
+  .home-sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.8px;color:var(--green-dark);font-weight:800;margin:22px 4px 8px;text-align:center;}
+  .home-steps{display:grid;gap:10px;margin:8px 0;}
   .step{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;}
   .step .n{width:28px;height:28px;border-radius:50%;background:var(--green-light);color:var(--green-dark);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
   .step .tx b{display:block;font-size:.95rem;}
@@ -370,7 +387,7 @@
       <div class="home">
         <div class="hero">
           <div class="home-logo" id="homeLogo">
-            <img id="homeLogoImg" src="logo.png" alt="GoGolfy" />
+            <img id="homeLogoImg" alt="GoGolfy" />
             <div id="homeLogoFallback">
               <svg viewBox="0 0 150 100" width="110" height="73" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block;margin:0 auto">
                 <g fill="none" stroke="#0b7a3b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
@@ -384,10 +401,18 @@
               <div class="hl-tag">YOUR RIDE INSIDE.</div>
             </div>
           </div>
+          <div class="hero-badge" id="heroBadge">Dar Masr Al Andalous</div>
           <h1 id="homeTitle">Need a ride?</h1>
           <p id="homeSub"></p>
           <button class="confirm-btn cta" id="homeBook">🛺 <span id="homeBookTxt">Book a ride</span></button>
+          <div class="chips">
+            <span class="chip" id="chip1"></span>
+            <span class="chip" id="chip2"></span>
+            <span class="chip" id="chip3"></span>
+            <span class="chip" id="chip4"></span>
+          </div>
         </div>
+        <div class="home-sec" id="homeStepsT">How it works</div>
         <div class="home-steps">
           <div class="step"><div class="n">1</div><div class="tx"><b id="hs1t"></b><span id="hs1s"></span></div></div>
           <div class="step"><div class="n">2</div><div class="tx"><b id="hs2t"></b><span id="hs2s"></span></div></div>
@@ -424,7 +449,15 @@
 
     <section id="screen-driver" class="hidden">
       <div class="dash-head">
-        <div>
+        <svg class="dh-logo" viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 22 H116"/><path d="M32 22 V42"/><path d="M108 22 V36"/><path d="M108 36 L124 60"/><path d="M24 42 V60 H124"/><path d="M60 42 V58"/>
+          </g>
+          <g fill="#fff"><rect x="32" y="46" width="24" height="7" rx="3"/><rect x="66" y="46" width="34" height="7" rx="3"/></g>
+          <circle cx="46" cy="74" r="13" fill="#fff"/><circle cx="46" cy="74" r="5.5" fill="#0b7a3b"/>
+          <circle cx="106" cy="74" r="13" fill="#fff"/><circle cx="106" cy="74" r="5.5" fill="#0b7a3b"/>
+        </svg>
+        <div class="dh-text">
           <div class="dh-t" id="driverTitle">Driver Dashboard</div>
           <div class="dh-s" id="driverSub">Live ride requests</div>
         </div>
@@ -440,7 +473,17 @@
 <div class="modal-overlay hidden" id="adminOverlay">
   <div class="modal">
     <div class="modal-head">
-      <h3>⚙️ Admin Dashboard</h3>
+      <div class="mh-brand">
+        <svg class="mh-logo" viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 22 H116"/><path d="M32 22 V42"/><path d="M108 22 V36"/><path d="M108 36 L124 60"/><path d="M24 42 V60 H124"/><path d="M60 42 V58"/>
+          </g>
+          <g fill="#fff"><rect x="32" y="46" width="24" height="7" rx="3"/><rect x="66" y="46" width="34" height="7" rx="3"/></g>
+          <circle cx="46" cy="74" r="13" fill="#fff"/><circle cx="46" cy="74" r="5.5" fill="#0b7a3b"/>
+          <circle cx="106" cy="74" r="13" fill="#fff"/><circle cx="106" cy="74" r="5.5" fill="#0b7a3b"/>
+        </svg>
+        <h3>GoGolfy Admin</h3>
+      </div>
       <button class="modal-close" id="adminClose">✕</button>
     </div>
     <div class="modal-body">
@@ -695,10 +738,11 @@
       msgTitle:"GoGolfy Ride Request", msgWaiting:"A resident is waiting. Please proceed to pickup.",
       msgConfirm:"👉 Open to accept the ride:", pinPrompt:"Enter admin PIN", pinWrong:"Wrong PIN",
       launchTitle:"Launching Soon", launchSub:"GoGolfy is getting ready to roll out in Dar Masr Al Andalous. We'll be live very soon — stay tuned!", launchTag:"Your ride inside.", launchWa:"💬 Contact us on WhatsApp",
-      homeTitle:"Need a ride? 🛺", homeSub:"GoGolfy — your golf-cart shuttle across Dar Masr Al Andalous.", homeBook:"Book a ride",
+      homeTitle:"Your ride is one tap away 🛺", homeSub:"Skip the walk — hop on a GoGolfy cart and glide across the compound in minutes.", homeBook:"Book a ride now",
+      homeStepsT:"How it works", chip1:"⚡ Arrives in minutes", chip2:"💳 InstaPay or Cash", chip3:"📍 12 pick-up points", chip4:"🌿 Quiet & green",
       hs1t:"1 · Choose your pick-up point", hs1s:"Scan the QR at your spot, or pick it from the list.",
       hs2t:"2 · Destination & payment", hs2s:"Pick where to go, the ride type, and InstaPay or Cash.",
-      hs3t:"3 · A driver is on the way", hs3s:"The driver is alerted instantly and accepts your ride.",
+      hs3t:"3 · A driver is on the way", hs3s:"The driver is alerted instantly — sit back and relax.",
       homeFaresT:"Ride types & fares", homeWa:"💬 Contact us on WhatsApp",
       m_pickup:"Pickup", m_drop:"Drop-off", m_res:"Residents", m_type:"Ride type", m_dist:"Distance", m_fare:"Fare",
       pay:"💳 Pay now (InstaPay)", payTitle:"How would you like to pay?",
@@ -732,10 +776,11 @@
       msgTitle:"طلب رحلة GoGolfy", msgWaiting:"أحد السكان في الانتظار. الرجاء التوجه لنقطة الانطلاق.",
       msgConfirm:"👉 افتح لقبول الرحلة:", pinPrompt:"أدخل رمز المشرف", pinWrong:"رمز غير صحيح",
       launchTitle:"قريبًا الإطلاق", launchSub:"GoGolfy على وشك الانطلاق في دار مصر الأندلس. سنكون متاحين قريبًا جدًا — ترقّبوا!", launchTag:"رحلتك في الداخل.", launchWa:"💬 تواصل معنا على واتساب",
-      homeTitle:"محتاج توصيلة؟ 🛺", homeSub:"GoGolfy — خدمة عربة الجولف داخل دار مصر الأندلس.", homeBook:"احجز رحلة",
+      homeTitle:"رحلتك على بُعد ضغطة 🛺", homeSub:"وفّر عناء المشي — اركب عربة GoGolfy وتنقّل داخل الكمبوند في دقائق.", homeBook:"احجز رحلتك الآن",
+      homeStepsT:"كيف تعمل", chip1:"⚡ تصل في دقائق", chip2:"💳 إنستاباي أو نقدًا", chip3:"📍 12 نقطة انطلاق", chip4:"🌿 هادئة وصديقة للبيئة",
       hs1t:"١ · اختر نقطة انطلاقك", hs1s:"امسح رمز QR في مكانك، أو اخترها من القائمة.",
       hs2t:"٢ · الوجهة والدفع", hs2s:"حدد وجهتك ونوع الرحلة وطريقة الدفع (إنستاباي أو نقدًا).",
-      hs3t:"٣ · السائق في الطريق", hs3s:"يصل الإخطار للسائق فورًا ويؤكد رحلتك.",
+      hs3t:"٣ · السائق في الطريق", hs3s:"يصل الإخطار للسائق فورًا — استرخِ وانتظر.",
       homeFaresT:"أنواع الرحلات والأسعار", homeWa:"💬 تواصل معنا على واتساب",
       m_pickup:"الانطلاق", m_drop:"الوجهة", m_res:"الركاب", m_type:"نوع الرحلة", m_dist:"المسافة", m_fare:"الأجرة",
       pay:"💳 ادفع الآن (إنستاباي)", payTitle:"كيف تحب أن تدفع؟",
@@ -982,7 +1027,8 @@
   function setHomeTexts(){
     if(!$("homeTitle")) return;
     $("homeTitle").textContent=(cfg.welcomeTitle&&cfg.welcomeTitle.trim())||t("homeTitle"); $("homeSub").textContent=(cfg.welcomeSub&&cfg.welcomeSub.trim())||t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
-    ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT"].forEach(function(k){ $(k).textContent=t(k); });
+    $("heroBadge").textContent=comp();
+    ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT","homeStepsT","chip1","chip2","chip3","chip4"].forEach(function(k){ $(k).textContent=t(k); });
     var u=cur();
     var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u]];
     rows.push([typeName("mixed"), cfg.mix[0]+"/"+cfg.mix[2]+" "+u]);
@@ -1243,9 +1289,10 @@
 
   function initLogo(){
     var img=$("homeLogoImg"), fb=$("homeLogoFallback"); if(!img) return;
-    img.onload=function(){ if(img.naturalWidth>1){ fb.style.display="none"; } };
-    img.onerror=function(){ img.style.display="none"; };
-    if(img.complete){ if(img.naturalWidth>1){ fb.style.display="none"; } else { img.style.display="none"; } }
+    var cands=["Logo.png","logo.png"], i=0;
+    img.onload=function(){ if(img.naturalWidth>1){ fb.style.display="none"; img.style.display=""; } };
+    img.onerror=function(){ if(i<cands.length){ img.src=cands[i++]; } else { img.style.display="none"; fb.style.display=""; } };
+    img.src=cands[i++];
   }
   function init(){
     parseUrl();
