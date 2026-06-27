@@ -610,7 +610,7 @@
         </div>
         <div class="field">
           <label>Pick-up points & route</label>
-          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot on the satellite map. Lines are straight between points and distances recalculate automatically. The last point loops back to the first.</div>
+          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Lines are always <b>straight</b>; tap a <b>＋</b> to add a corner, then drag it — add as many corners as you like to shape the line with straight segments (e.g. around a square). Distances recalculate automatically. The last point loops back to the first.</div>
           <button type="button" class="save-btn" id="addPoint" style="margin:0 0 10px;background:var(--green-dark);">➕ Add pick-up point</button>
           <div id="routeMap"></div>
           <textarea id="cfgLabels" rows="6" readonly style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.82rem;font-family:monospace;background:var(--green-light);color:var(--ink);"></textarea>
@@ -894,7 +894,8 @@
     }
   };
   function t(k){ return (T[lang]&&T[lang][k]!=null)?T[lang][k]:T.en[k]; }
-  function cpName(i){ if(cfg.route&&cfg.route[i-1]&&cfg.route[i-1].name) return cfg.route[i-1].name; var ov=cfg.labels&&cfg.labels[i-1]; if(ov&&String(ov).trim()) return String(ov).trim(); return CHECKPOINTS[i-1]?(lang==="ar"?CHECKPOINTS[i-1].ar:CHECKPOINTS[i-1].en):("#"+i); }
+  function localizeName(nm){ if(!nm) return nm; for(var k=0;k<CHECKPOINTS.length;k++){ if(CHECKPOINTS[k].en===nm||CHECKPOINTS[k].ar===nm) return lang==="ar"?CHECKPOINTS[k].ar:CHECKPOINTS[k].en; } return nm; }  // default names follow the viewer's language; custom names pass through
+  function cpName(i){ if(cfg.route&&cfg.route[i-1]&&cfg.route[i-1].name) return localizeName(cfg.route[i-1].name); var ov=cfg.labels&&cfg.labels[i-1]; if(ov&&String(ov).trim()) return localizeName(String(ov).trim()); return CHECKPOINTS[i-1]?(lang==="ar"?CHECKPOINTS[i-1].ar:CHECKPOINTS[i-1].en):("#"+i); }
   function typeName(ty){ return t("t_"+ty); }
   function cur(){ return (cfg.currency&&cfg.currency.trim())||t("curr"); }
   function comp(){ return (cfg.compound&&cfg.compound.trim())||t("compound"); }
@@ -986,12 +987,12 @@
   var bMap=null, bMarkers=[], bLine=null, bAllMk=[], bLoop=null;
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
   function bSmallIcon(txt){ return L.divIcon({className:'gg-pin gg-pin-sm', html:String(txt), iconSize:[22,22], iconAnchor:[11,11]}); }
-  function loopCoordsAll(){ var c=[]; for(var i=1;i<=N;i++) c.push(ptCoord(i)); if(c.length>1) c.push(c[0]); return c; }
+  function loopCoordsAll(){ var c=[]; for(var i=1;i<=N;i++){ c.push(ptCoord(i)); viaOf(i).forEach(function(v){ c.push([v[0],v[1]]); }); } if(c.length>1) c.push(c[0]); return c; }
   function routeArc(pi,di){
-    var p=routePos(), fwd=((p[di]-p[pi])+p._total)%p._total, arc=[], k=pi; arc.push(k);
-    if(fwd<=p._total-fwd){ while(k!==di){ k=k%N+1; arc.push(k); } }
-    else { while(k!==di){ k=(k-2+N)%N+1; arc.push(k); } }
-    return arc.map(function(i){ return ptCoord(i); });
+    var p=routePos(), fwd=((p[di]-p[pi])+p._total)%p._total, coords=[], k=pi; coords.push(ptCoord(k));
+    if(fwd<=p._total-fwd){ while(k!==di){ viaOf(k).forEach(function(v){coords.push([v[0],v[1]]);}); k=k%N+1; coords.push(ptCoord(k)); } }
+    else { while(k!==di){ var prev=(k-2+N)%N+1; viaOf(prev).slice().reverse().forEach(function(v){coords.push([v[0],v[1]]);}); k=prev; coords.push(ptCoord(k)); } }
+    return coords;
   }
   function updateMap(){
     var card=$("mapCard"); if(!card) return;
@@ -1312,11 +1313,14 @@
   }
   function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
   function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
-  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i) }); } }
-  function recalcSegs(){ var n=routeEdit.length; for(var i=0;i<n;i++){ var a=routeEdit[i], b=routeEdit[(i+1)%n]; routeEdit[i].seg=Math.round(haversine([a.lat,a.lng],[b.lat,b.lng])*1.25/5)*5; } }
+  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
+  function reSegPath(idx){ var n=routeEdit.length, a=routeEdit[idx], b=routeEdit[(idx+1)%n]; var pts=[[a.lat,a.lng]]; (a.via||[]).forEach(function(p){pts.push(p);}); pts.push([b.lat,b.lng]); return pts; }
+  function pathLen(pts){ var d=0; for(var k=1;k<pts.length;k++) d+=haversine(pts[k-1],pts[k]); return d; }
+  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ var hasVia=(routeEdit[i].via&&routeEdit[i].via.length); var d=pathLen(reSegPath(i))*(hasVia?1:1.25); routeEdit[i].seg=Math.round(d/5)*5; } }
   function routeEditToText(){ return routeEdit.map(function(r,i){ return (i+1)+". "+r.name+" — "+r.seg+" m"; }).join("\n"); }
-  function reLoopCoords(){ var c=routeEdit.map(function(r){ return [r.lat,r.lng]; }); if(c.length>1) c.push(c[0]); return c; }
+  function reLoopCoords(){ var c=[]; for(var i=0;i<routeEdit.length;i++){ c.push([routeEdit[i].lat,routeEdit[i].lng]); (routeEdit[i].via||[]).forEach(function(p){c.push(p);}); } if(c.length>1) c.push(c[0]); return c; }
   function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } rLine=L.polyline(reLoopCoords(),{color:'#1f9a48',weight:4,opacity:.95,lineJoin:'round'}).addTo(rMap); }
+  function routeVertices(){ var V=[]; for(var i=0;i<routeEdit.length;i++){ V.push({ll:[routeEdit[i].lat,routeEdit[i].lng],kind:'pt',i:i}); (routeEdit[i].via||[]).forEach(function(p,vi){ V.push({ll:p,kind:'via',i:i,vi:vi}); }); } return V; }
   function clearRouteMarkers(){ [rMarkers,rViaMk,rAddMk].forEach(function(arr){ arr.forEach(function(m){ try{rMap.removeLayer(m);}catch(e){} }); }); rMarkers=[]; rViaMk=[]; rAddMk=[]; }
   function refreshRoute(){ recalcSegs(); $("cfgLabels").value=routeEditToText(); drawRouteLine(); renderRouteMarkers(); }
   function renderRouteMarkers(){
@@ -1329,6 +1333,25 @@
       m.bindTooltip((idx+1)+" · "+r.name,{direction:'top'});
       rMarkers.push(m);
     });
+    var V=routeVertices(), len=V.length;
+    for(var k=0;k<len;k++){
+      var cur=V[k], nxt=V[(k+1)%len];
+      if(cur.kind==='via'){ (function(seg,vi){
+        var vm=L.marker(cur.ll,{draggable:true,zIndexOffset:600,icon:L.divIcon({className:'',html:'<div class="gg-bend"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(rMap);
+        vm.on('drag',function(){ var ll=vm.getLatLng(); routeEdit[seg].via[vi]=[ll.lat,ll.lng]; drawRouteLine(); });
+        vm.on('dragend',function(){ refreshRoute(); });
+        vm.on('click',function(){ routeEdit[seg].via.splice(vi,1); refreshRoute(); });
+        vm.bindTooltip("Corner — drag it to shape the line · tap to remove",{direction:'top'});
+        rViaMk.push(vm);
+      })(cur.i,cur.vi); }
+      (function(seg,ins,a,b){
+        var mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+        var am=L.marker(mid,{zIndexOffset:300,icon:L.divIcon({className:'',html:'<div class="gg-add">+</div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(rMap);
+        am.on('click',function(){ routeEdit[seg].via=routeEdit[seg].via||[]; routeEdit[seg].via.splice(ins,0,mid); refreshRoute(); });
+        am.bindTooltip("Add a corner (straight segment)",{direction:'top'});
+        rAddMk.push(am);
+      })(cur.i,(cur.kind==='pt'?0:cur.vi+1),cur.ll,nxt.ll);
+    }
   }
   function openPointPopup(idx,m){
     var r=routeEdit[idx];
@@ -1386,7 +1409,8 @@
     cfg.waEnabled=$("cfgWa").checked;
     if(routeEdit&&routeEdit.length){
       recalcSegs();
-      cfg.route=routeEdit.map(function(r){ return { name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; });
+      recalcSegs();
+      cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); return o; });
     }
     cfg.labels=[];
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
@@ -1565,11 +1589,15 @@
       var r=rides[id];
       var payBadge=r.payMethod==="cash"?'<span class="badge cash">'+esc(t("b_cash"))+'</span>':(r.payMethod==="instapay"?'<span class="badge pay">'+esc(t("b_paid"))+'</span>':'');
       var dist=(r.distance!=null)?(" · ~"+r.distance+" m"):"";
+      // render in the DRIVER's language (recompute from indices), not the rider's stored strings
+      var pName=(r.pickup==="home")?t("home"):(r.pickup?cpName(r.pickup):(r.pickupName||""));
+      var dName=r.destination?cpName(r.destination):(r.destName||"");
+      var tName=r.rideType?typeName(r.rideType):(r.typeName||"");
       return '<div class="dcard s-new"><div class="d-top"><div>'
-        +'<div class="d-route">'+esc(r.pickupName)+' → '+esc(r.destName)+'</div>'
-        +'<div class="d-meta">'+esc(r.typeName||"")+' · '+r.residents+'👥'+dist+' · '+esc(r.timeShort||"")+'</div>'
+        +'<div class="d-route">'+esc(pName)+' → '+esc(dName)+'</div>'
+        +'<div class="d-meta">'+esc(tName)+' · '+r.residents+'👥'+dist+' · '+esc(r.timeShort||"")+'</div>'
         +'<div class="d-badges">'+payBadge+'</div></div>'
-        +'<div class="d-fare">'+esc(r.fareStr||"")+'</div></div>'
+        +'<div class="d-fare">'+esc(r.fare!=null?money(r.fare):(r.fareStr||""))+'</div></div>'
         +'<div class="d-actions"><button data-id="'+id+'">'+esc(t("b_done"))+'</button></div></div>';
     }).join("");
     box.querySelectorAll(".d-actions button").forEach(function(b){ b.addEventListener("click",function(){ driverDone(b.getAttribute("data-id")); }); });
