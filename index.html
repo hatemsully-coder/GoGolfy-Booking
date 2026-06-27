@@ -33,6 +33,10 @@
   .lang{inset-inline-start:14px;}
 
   main{flex:1;padding:18px;}
+  .nav-back{display:inline-flex;align-items:center;gap:7px;background:var(--white);border:1px solid var(--line);color:var(--green-dark);font-weight:700;font-size:.86rem;padding:9px 15px;border-radius:22px;cursor:pointer;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  .nav-back:active{background:var(--green-light);}
+  .nav-back .arr{display:inline-block;font-size:1.05rem;line-height:1;}
+  [dir="rtl"] .nav-back .arr{transform:scaleX(-1);}
   .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.03);}
   .label{font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 
@@ -250,8 +254,14 @@
   .hl-word{font-weight:800;font-size:1.9rem;color:var(--green-dark);letter-spacing:.3px;line-height:1;}
   .hl-tag{font-size:.66rem;letter-spacing:2px;color:var(--muted);font-weight:700;margin-top:2px;}
   /* admin route map */
-  #routeMap{width:100%;height:300px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;margin-bottom:8px;}
+  #routeMap{width:100%;height:320px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;margin-bottom:8px;}
   .gg-pin{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:800;font-size:13px;border:2px solid var(--green);background:#fff;color:#15241c;box-shadow:0 1px 5px rgba(0,0,0,.35);}
+  .gg-bend{width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);cursor:move;}
+  .gg-add{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.92);border:1.5px dashed var(--green-dark);color:var(--green-dark);font-weight:800;font-size:14px;line-height:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .rp-pop input{width:150px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:.92rem;margin-bottom:8px;font-family:inherit;}
+  .rp-pop .rp-row{display:flex;gap:6px;}
+  .rp-pop .rp-row button{flex:1;padding:7px 6px;border:1px solid var(--line);background:#fff;border-radius:8px;font-weight:700;cursor:pointer;font-size:.85rem;}
+  .rp-pop .rp-del{color:#c0392b;border-color:#e7b3ab;flex:2;}
   .leaflet-container{font-family:inherit;}
   /* landing page */
   .home{padding:2px 2px 22px;}
@@ -357,6 +367,7 @@
 
   <main>
     <section id="screen-book">
+      <button class="nav-back" id="bookBack"><span class="arr">←</span><span id="bookBackTxt">Main page</span></button>
       <div class="card">
         <div class="label" id="lblPickup">📍 Pickup</div>
         <div class="pickup-box">
@@ -420,6 +431,7 @@
     </section>
 
     <section id="screen-done" class="hidden">
+      <button class="nav-back" id="doneBack"><span class="arr">←</span><span id="doneBackTxt">Back to booking</span></button>
       <div class="confirmation">
         <div class="tick">✓</div>
         <h2 id="doneTitle">Ride Requested!</h2>
@@ -524,7 +536,7 @@
     </section>
   </main>
 
-  <footer>GoGolfy · Dar Masr Al Andalous · Scan to Ride</footer>
+  <footer>GoGolfy · Dar Masr Al Andalous — Phase 2 · Scan to Ride</footer>
 </div>
 
 <div class="rev-overlay hidden" id="reviewModal">
@@ -598,9 +610,10 @@
         </div>
         <div class="field">
           <label>Pick-up points & route</label>
-          <div class="desc"><b>Drag a pin on the map</b> to move a pick-up point — distances recalculate automatically. Or edit below: one line per point <b>in order (the sequence)</b>, format <code>Name | distance to next (m)</code>. Reorder lines to change sequence. Fares use these distances; the last point loops to the first.</div>
+          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> to move it. Tap a <b>＋</b> on the line to add a road bend, then drag it onto the real road so the line follows the road (not gardens) — distances recalculate automatically along the traced path. The last point loops back to the first.</div>
+          <button type="button" class="save-btn" id="addPoint" style="margin:0 0 10px;background:var(--green-dark);">➕ Add pick-up point</button>
           <div id="routeMap"></div>
-          <textarea id="cfgLabels" rows="8" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-family:monospace;background:#fff;color:var(--ink);"></textarea>
+          <textarea id="cfgLabels" rows="6" readonly style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.82rem;font-family:monospace;background:var(--green-light);color:var(--ink);"></textarea>
         </div>
 
         <div class="sec-title">Private — per person, by ride distance (EGP)</div>
@@ -614,11 +627,8 @@
           <div class="field"><label>≥ Band 2</label><input type="number" id="cfgP3" /></div>
         </div>
 
-        <div class="sec-title">Group ride — per person (EGP) · auto-used for 2+ residents</div>
-        <div class="g2">
-          <div class="field"><label>2 people (each)</label><input type="number" id="cfgM2" /></div>
-          <div class="field"><label>3+ people (each)</label><input type="number" id="cfgM3" /></div>
-        </div>
+        <div class="sec-title">Group ride — per person (EGP) · auto-used for 3 or more residents</div>
+        <div class="field"><label>3 or more people (each)</label><input type="number" id="cfgM3" /></div>
 
         <div class="sec-title">Premium / Home pickup — per person (EGP)</div>
         <div class="g3">
@@ -751,6 +761,7 @@
   var DEFAULT_SEG=[265,265,230,210,165,170,310,295,270,230,250,195];
   var N=CHECKPOINTS.length;  // recomputed from cfg.route after cfg loads
   function segOf(i){ if(cfg.route&&cfg.route[i-1]) return Number(cfg.route[i-1].seg)||0; return DEFAULT_SEG[i-1]||0; }
+  function viaOf(i){ var r=cfg.route&&cfg.route[i-1]; return (r&&r.via&&r.via.length)?r.via:[]; }  // road bends from point i to next (1-based)
   function routePos(){ var pos={}, acc=0; for(var i=1;i<=N;i++){ pos[i]=acc; acc+=segOf(i); } pos._total=acc||1; return pos; }
 
   var RIDE_TYPES=["private","mixed","premium"];
@@ -759,7 +770,7 @@
     phone:"201094000115", maxRes:6,
     privT:[600,900],         // Private distance thresholds (m): ≤600 / 600–900 / ≥900
     priv:[20,25,30],         // Private per person by distance band
-    mix:[25,25,20],          // Group ride per person for 1 / 2 / 3+ (2→25, 3+→20)
+    mix:[20,20,20],          // Group ride (3 or more) per person
     prem:[50,40,30],         // Premium per person for 1 / 2 / 3+
     baseUrl:"https://gogolfy.net/",               // your domain (used for QR codes & driver link)
     payLink:"https://ipn.eg/S/hatemsully/instapay/4T6VhV",
@@ -787,7 +798,7 @@
   // ---- translations ----
   var T={
     en:{
-      tagline:"Your ride inside · Scan to Ride", compound:"Dar Masr Al Andalous",
+      tagline:"Your ride inside · Scan to Ride", compound:"Dar Masr Al Andalous — Phase 2",
       lblPickup:"📍 Pickup", lblDest:"🎯 Destination", lblRtype:"🚗 Ride type",
       lblResidents:"👥 Residents", lblPhone:"📱 Your WhatsApp (optional)", lblFare:"Fare", resUnit:"residents", point:"Point",
       lblMap:"🗺️ Compound map", mapHint:"Tap a point on the map to set your destination", homeClosed:"Home pickup is currently closed — please choose a pickup point.",
@@ -804,6 +815,7 @@
       doneTitle:"Ride Requested!", doneLead:"A driver has been notified. Please wait at your pickup point.",
       rPickup:"Pickup", rDest:"Destination", rRes:"Residents", rType:"Ride type", rDist:"Ride distance", rTotal:"Total fare",
       resend:"📲 Notify driver again", again:"Book another ride", langBtn:"عربي",
+      backMain:"Main page", backBooking:"Back to booking",
       t_private:"Single ride", d_private:"Just your group · by distance",
       t_mixed:"Group ride", d_mixed:"Shared with others · per person",
       t_premium:"Premium", d_premium:"Home / door-to-door",
@@ -832,7 +844,7 @@
       dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you."
     },
     ar:{
-      tagline:"رحلتك في الداخل · امسح للركوب", compound:"دار مصر الأندلس",
+      tagline:"رحلتك في الداخل · امسح للركوب", compound:"دار مصر الأندلس — المرحلة الثانية",
       lblPickup:"📍 نقطة الانطلاق", lblDest:"🎯 الوجهة", lblRtype:"🚗 نوع الرحلة",
       lblResidents:"👥 عدد الركاب", lblPhone:"📱 رقم واتساب (اختياري)", lblFare:"الأجرة", resUnit:"راكب", point:"نقطة",
       lblMap:"🗺️ خريطة الكمبوند", mapHint:"اضغط على نقطة في الخريطة لتحديد وجهتك", homeClosed:"خدمة الاستلام من المنزل مغلقة حاليًا — اختر نقطة انطلاق.",
@@ -849,6 +861,7 @@
       doneTitle:"تم طلب الرحلة!", doneLead:"تم إخطار السائق. الرجاء الانتظار في نقطة انطلاقك.",
       rPickup:"الانطلاق", rDest:"الوجهة", rRes:"الركاب", rType:"نوع الرحلة", rDist:"مسافة الرحلة", rTotal:"إجمالي الأجرة",
       resend:"📲 إخطار السائق مرة أخرى", again:"حجز رحلة أخرى", langBtn:"EN",
+      backMain:"الصفحة الرئيسية", backBooking:"العودة لصفحة الحجز",
       t_private:"رحلة فردية", d_private:"لمجموعتك فقط · حسب المسافة",
       t_mixed:"رحلة جماعية", d_mixed:"مشتركة مع آخرين · للفرد",
       t_premium:"بريميوم", d_premium:"من المنزل / من الباب للباب",
@@ -935,6 +948,8 @@
     $("resendBtn").textContent=t("resend"); $("againBtn").textContent=t("again");
     if($("dlTitle")) $("dlTitle").textContent=t("dlTitle");
     if($("dlNoteTxt")) $("dlNoteTxt").textContent=t("dlNote");
+    if($("bookBackTxt")) $("bookBackTxt").textContent=t("backMain");
+    if($("doneBackTxt")) $("doneBackTxt").textContent=t("backBooking");
     setShareLocText();
   }
   function renderPickup(){
@@ -965,9 +980,16 @@
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
-  var bMap=null, bMarkers=[], bLine=null, bAllMk=[];
+  var bMap=null, bMarkers=[], bLine=null, bAllMk=[], bLoop=null;
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
   function bSmallIcon(txt){ return L.divIcon({className:'gg-pin gg-pin-sm', html:String(txt), iconSize:[22,22], iconAnchor:[11,11]}); }
+  function loopCoordsAll(){ var c=[]; for(var i=1;i<=N;i++){ c.push(ptCoord(i)); viaOf(i).forEach(function(v){ c.push([v[0],v[1]]); }); } if(c.length>1) c.push(c[0]); return c; }
+  function routeArc(pi,di){
+    var p=routePos(), fwd=((p[di]-p[pi])+p._total)%p._total, coords=[], k=pi; coords.push(ptCoord(k));
+    if(fwd<=p._total-fwd){ while(k!==di){ viaOf(k).forEach(function(v){coords.push([v[0],v[1]]);}); k=k%N+1; coords.push(ptCoord(k)); } }
+    else { while(k!==di){ var prev=(k-2+N)%N+1; viaOf(prev).slice().reverse().forEach(function(v){coords.push([v[0],v[1]]);}); k=prev; coords.push(ptCoord(k)); } }
+    return coords;
+  }
   function updateMap(){
     var card=$("mapCard"); if(!card) return;
     if(state.home || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); return; }
@@ -975,40 +997,41 @@
     loadLeaflet(function(){
       if(!window.L) return;
       if(!bMap){
-        bMap=L.map('bookMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
+        bMap=L.map('bookMap',{zoomControl:false,attributionControl:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,dragging:false,touchZoom:false,keyboard:false});
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(bMap);
       }
       bAllMk.forEach(function(m){ bMap.removeLayer(m); }); bAllMk=[];
       bMarkers.forEach(function(m){ try{m.unbindTooltip();}catch(e){} bMap.removeLayer(m); }); bMarkers=[];
       if(bLine){ bMap.removeLayer(bLine); bLine=null; }
+      if(bLoop){ bMap.removeLayer(bLoop); bLoop=null; }
       try{ var tp=bMap.getPane('tooltipPane'); if(tp) tp.innerHTML=''; }catch(e){}
-      // all points — small, tappable to set the destination
-      var all=[];
-      for(var i=1;i<=N;i++){(function(n){
-        var c=ptCoord(n); all.push(c);
+      // the compound loop road (subtle — follows the traced road shape)
+      var all=[]; for(var i=1;i<=N;i++) all.push(ptCoord(i));
+      bLoop=L.polyline(loopCoordsAll(),{color:'#ffffff',weight:2,opacity:.5,dashArray:'4 7',lineJoin:'round'}).addTo(bMap);
+      // all other points — small, tappable to set the destination
+      for(var j=1;j<=N;j++){(function(n){
         if(n===state.pickup || n===state.destination) return;
-        var sm=L.marker(c,{icon:bSmallIcon(n)}).addTo(bMap);
+        var sm=L.marker(ptCoord(n),{icon:bSmallIcon(n)}).addTo(bMap);
         sm.bindTooltip(cpName(n),{direction:'top'});
         sm.on('click',function(){ if(n!==state.pickup){ state.destination=n; renderDest(); updateMap(); updateFare(); } });
         bAllMk.push(sm);
-      })(i);}
+      })(j);}
       var pc=state.pickup?ptCoord(state.pickup):null, dc=state.destination?ptCoord(state.destination):null;
-      if(pc){
-        var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk'),zIndexOffset:1000}).addTo(bMap);
-        pm.bindTooltip("📍 "+cpName(state.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); bMarkers.push(pm);
-      }
-      if(dc){
-        var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds'),zIndexOffset:1000}).addTo(bMap);
-        dm.bindTooltip("🎯 "+cpName(state.destination),{permanent:true,direction:'bottom',offset:[0,19],className:'gg-tip gg-tip-ds'}); bMarkers.push(dm);
-      }
-      if(pc&&dc){
+      // actual route along the loop (the shorter way around)
+      if(state.pickup&&state.destination){
         var gc=getComputedStyle(document.documentElement).getPropertyValue('--green').trim()||'#1f9a48';
-        var casing=L.polyline([pc,dc],{color:'#ffffff',weight:8,opacity:.85,lineCap:'round'});
-        var path=L.polyline([pc,dc],{color:gc,weight:4.5,opacity:1,dashArray:'1 12',lineCap:'round'});
+        var arc=routeArc(state.pickup,state.destination);
+        var casing=L.polyline(arc,{color:'#ffffff',weight:8,opacity:.9,lineCap:'round',lineJoin:'round'});
+        var path=L.polyline(arc,{color:gc,weight:5,opacity:1,lineCap:'round',lineJoin:'round'});
         bLine=L.layerGroup([casing,path]).addTo(bMap);
-        bMap.fitBounds(L.latLngBounds([pc,dc]),{paddingTopLeft:[75,48],paddingBottomRight:[75,48],maxZoom:17});
-      } else { bMap.fitBounds(L.latLngBounds(all),{padding:[28,28],maxZoom:16}); }
-      setTimeout(function(){ try{ bMap.invalidateSize(); }catch(e){} },160);
+      }
+      if(pc){ var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk'),zIndexOffset:1000}).addTo(bMap);
+        pm.bindTooltip("📍 "+cpName(state.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); bMarkers.push(pm); }
+      if(dc){ var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds'),zIndexOffset:1000}).addTo(bMap);
+        dm.bindTooltip("🎯 "+cpName(state.destination),{permanent:true,direction:'bottom',offset:[0,19],className:'gg-tip gg-tip-ds'}); bMarkers.push(dm); }
+      // fixed, consistent framing — always show the whole compound
+      bMap.fitBounds(L.latLngBounds(all),{padding:[34,34]});
+      setTimeout(function(){ try{ bMap.invalidateSize(); bMap.fitBounds(L.latLngBounds(all),{padding:[34,34]}); }catch(e){} },160);
       var cap=$("bookMapCap"); if(cap){ var h="";
         if(pc) h+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</span>';
         if(dc) h+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</span>';
@@ -1019,28 +1042,26 @@
   function rtDesc(ty){
     var u=cur(), per=lang==="ar"?"للفرد":"each", pp=lang==="ar"?"للفرد":"per person";
     if(ty==="private") return (lang==="ar"?"حسب المسافة · ":"By distance · ")+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+" "+pp;
-    if(ty==="mixed") return (lang==="ar"?"مشترك · ":"Shared · ")+cfg.mix[1]+" "+per+" (2), "+cfg.mix[2]+" "+per+" (3+)";
+    if(ty==="mixed") return (lang==="ar"?"مشترك · ":"Shared · ")+cfg.mix[2]+" "+per+" ("+(lang==="ar"?"3 أو أكثر":"3+")+")";
     if(ty==="premium") return (lang==="ar"?"من المنزل · ":"Home · ")+cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u+" "+pp;
     return t("d_"+ty);
   }
   function autoType(){
     if(state.home){ state.rideType="premium"; return; }
     if(state.rideType==="premium" && cfg.homeEnabled!==false) return; // keep manual Premium choice
-    state.rideType = state.residents>1 ? "mixed" : "private";  // auto: 1 person = Private, 2+ = Shared
+    state.rideType = state.residents>2 ? "mixed" : "private";  // auto: 1–2 = Single, 3+ = Group
   }
   function renderFareGuide(){
     var el=$("fareGuide"); if(!el) return;
     var u=cur(), each=lang==="ar"?"للفرد":"each", byd=lang==="ar"?"حسب المسافة":"by distance";
     var ar=(lang==="ar");
     var title=ar?"💡 الأسعار (لكل راكب)":"💡 Fares (per person)";
-    var rSingle=ar?"رحلة فردية · راكب واحد":"Single ride · 1 person";
-    var rG2=ar?"رحلة جماعية · راكبان":"Group ride · 2 people";
-    var rG3=ar?"رحلة جماعية · 3 أو أكثر":"Group ride · 3+ people";
+    var rSingle=ar?"رحلة فردية · 1–2 ركاب":"Single ride · 1–2 people";
+    var rGroup=ar?"رحلة جماعية · 3 ركاب أو أكثر":"Group ride · 3 or more";
     function row(on,icon,k,v){ return '<div class="fg-row'+(on?" on":"")+'"><span class="fg-k">'+icon+' '+k+'</span><span class="fg-v">'+v+'</span></div>'; }
     var html='<div class="fg-title">'+title+'</div>'
-      +row(state.residents<=1,"👤",rSingle,"<b>"+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+"</b> "+byd)
-      +row(state.residents===2,"👥",rG2,"<b>"+cfg.mix[1]+" "+u+"</b> "+each)
-      +row(state.residents>=3,"👥",rG3,"<b>"+cfg.mix[2]+" "+u+"</b> "+each);
+      +row(state.residents<=2,"👤",rSingle,"<b>"+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+"</b> "+byd)
+      +row(state.residents>=3,"👥",rGroup,"<b>"+cfg.mix[2]+" "+u+"</b> "+each);
     el.innerHTML=html;
   }
   function renderRtypes(){
@@ -1048,7 +1069,7 @@
     var box=$("rtypes"); box.innerHTML="";
     var list;
     if(state.home){ list=["premium"]; }
-    else { list = state.residents>1 ? ["mixed"] : ["private"]; if(cfg.homeEnabled!==false) list.push("premium"); }
+    else { list = state.residents>2 ? ["mixed"] : ["private"]; if(cfg.homeEnabled!==false) list.push("premium"); }
     if(list.indexOf(state.rideType)<0) state.rideType=list[0];
     list.forEach(function(ty){
       var b=document.createElement("button"); b.className="rt"+(state.rideType===ty?" sel":"");
@@ -1216,7 +1237,7 @@
     ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT","homeStepsT","chip1","chip2","chip3","chip4"].forEach(function(k){ $(k).textContent=t(k); });
     var u=cur();
     var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u]];
-    rows.push([typeName("mixed"), cfg.mix[1]+"/"+cfg.mix[2]+" "+u]);
+    rows.push([typeName("mixed"), cfg.mix[2]+" "+u+" ("+(lang==="ar"?"3+":"3+")+")"]);
     if(cfg.homeEnabled!==false) rows.push([typeName("premium"), cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u]);
     $("homeFares").innerHTML=rows.map(function(r){ return '<div class="fare-row"><span>'+esc(r[0])+'</span><span class="muted">'+esc(r[1])+'</span></div>'; }).join("");
     var wa=$("homeWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("homeWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
@@ -1273,7 +1294,7 @@
       +"Open the link, pick your destination on the map & confirm — a driver will be notified.";
   }
   // ---- admin route map (Leaflet, lazy-loaded) ----
-  var leafletLoading=false, rMap=null, rMarkers=[], rLine=null, routeEdit=[];
+  var leafletLoading=false, rMap=null, rMarkers=[], rViaMk=[], rAddMk=[], rLine=null, routeEdit=[];
   function loadLeaflet(cb){
     if(window.L){ cb(); return; }
     if(!document.getElementById("leafletCss")){ var css=document.createElement("link"); css.id="leafletCss"; css.rel="stylesheet"; css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(css); }
@@ -1282,26 +1303,73 @@
   }
   function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
   function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
-  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i) }); } }
-  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ var nx=routeEdit[(i+1)%routeEdit.length]; routeEdit[i].seg=Math.round(haversine([routeEdit[i].lat,routeEdit[i].lng],[nx.lat,nx.lng])*1.25/5)*5; } }
-  function routeEditToText(){ return routeEdit.map(function(r){ return r.name+" | "+r.seg; }).join("\n"); }
-  function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } var pts=routeEdit.map(function(r){return [r.lat,r.lng];}); if(pts.length>1) pts.push(pts[0]); rLine=L.polyline(pts,{color:'#1f9a48',weight:3,dashArray:'5 5'}).addTo(rMap); }
+  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
+  function reSegPath(idx){ var n=routeEdit.length, a=routeEdit[idx], b=routeEdit[(idx+1)%n]; var pts=[[a.lat,a.lng]]; (a.via||[]).forEach(function(p){pts.push(p);}); pts.push([b.lat,b.lng]); return pts; }
+  function pathLen(pts){ var d=0; for(var k=1;k<pts.length;k++) d+=haversine(pts[k-1],pts[k]); return d; }
+  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ var hasVia=(routeEdit[i].via&&routeEdit[i].via.length); var d=pathLen(reSegPath(i))*(hasVia?1:1.25); routeEdit[i].seg=Math.round(d/5)*5; } }
+  function routeEditToText(){ return routeEdit.map(function(r,i){ return (i+1)+". "+r.name+" — "+r.seg+" m"; }).join("\n"); }
+  function reLoopCoords(){ var c=[]; for(var i=0;i<routeEdit.length;i++){ c.push([routeEdit[i].lat,routeEdit[i].lng]); (routeEdit[i].via||[]).forEach(function(p){c.push(p);}); } if(c.length>1) c.push(c[0]); return c; }
+  function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } rLine=L.polyline(reLoopCoords(),{color:'#1f9a48',weight:4,opacity:.95,lineJoin:'round'}).addTo(rMap); }
+  function routeVertices(){ var V=[]; for(var i=0;i<routeEdit.length;i++){ V.push({ll:[routeEdit[i].lat,routeEdit[i].lng],kind:'pt',i:i}); (routeEdit[i].via||[]).forEach(function(p,vi){ V.push({ll:p,kind:'via',i:i,vi:vi}); }); } return V; }
+  function clearRouteMarkers(){ [rMarkers,rViaMk,rAddMk].forEach(function(arr){ arr.forEach(function(m){ try{rMap.removeLayer(m);}catch(e){} }); }); rMarkers=[]; rViaMk=[]; rAddMk=[]; }
+  function refreshRoute(){ recalcSegs(); $("cfgLabels").value=routeEditToText(); drawRouteLine(); renderRouteMarkers(); }
+  function renderRouteMarkers(){
+    if(!rMap||!window.L) return; clearRouteMarkers();
+    routeEdit.forEach(function(r,idx){
+      var m=L.marker([r.lat,r.lng],{draggable:true,zIndexOffset:1000,icon:L.divIcon({className:'',html:'<div class="gg-pin pk">'+(idx+1)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(rMap);
+      m.on('drag',function(){ var ll=m.getLatLng(); routeEdit[idx].lat=ll.lat; routeEdit[idx].lng=ll.lng; drawRouteLine(); });
+      m.on('dragend',function(){ refreshRoute(); });
+      m.on('click',function(){ openPointPopup(idx,m); });
+      m.bindTooltip((idx+1)+" · "+r.name,{direction:'top'});
+      rMarkers.push(m);
+    });
+    var V=routeVertices(), len=V.length;
+    for(var k=0;k<len;k++){
+      var cur=V[k], nxt=V[(k+1)%len];
+      if(cur.kind==='via'){ (function(seg,vi){
+        var vm=L.marker(cur.ll,{draggable:true,zIndexOffset:600,icon:L.divIcon({className:'',html:'<div class="gg-bend"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(rMap);
+        vm.on('drag',function(){ var ll=vm.getLatLng(); routeEdit[seg].via[vi]=[ll.lat,ll.lng]; drawRouteLine(); });
+        vm.on('dragend',function(){ refreshRoute(); });
+        vm.on('click',function(){ routeEdit[seg].via.splice(vi,1); refreshRoute(); });
+        vm.bindTooltip("Bend — drag onto the road · tap to remove",{direction:'top'});
+        rViaMk.push(vm);
+      })(cur.i,cur.vi); }
+      (function(seg,ins,a,b){
+        var mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+        var am=L.marker(mid,{zIndexOffset:300,icon:L.divIcon({className:'',html:'<div class="gg-add">+</div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(rMap);
+        am.on('click',function(){ routeEdit[seg].via=routeEdit[seg].via||[]; routeEdit[seg].via.splice(ins,0,mid); refreshRoute(); });
+        am.bindTooltip("Add a road bend here",{direction:'top'});
+        rAddMk.push(am);
+      })(cur.i,(cur.kind==='pt'?0:cur.vi+1),cur.ll,nxt.ll);
+    }
+  }
+  function openPointPopup(idx,m){
+    var r=routeEdit[idx];
+    m.bindPopup('<div class="rp-pop"><input id="rpName" value="'+esc(r.name)+'" placeholder="Pick-up point name"/>'
+      +'<div class="rp-row"><button id="rpUp" title="Move earlier">⬆</button><button id="rpDown" title="Move later">⬇</button><button id="rpDel" class="rp-del">🗑 Delete</button></div></div>').openPopup();
+    setTimeout(function(){
+      var ni=document.getElementById('rpName'); if(ni){ ni.focus(); ni.oninput=function(){ routeEdit[idx].name=ni.value; $("cfgLabels").value=routeEditToText(); m.setTooltipContent((idx+1)+" · "+ni.value); }; }
+      var del=document.getElementById('rpDel'); if(del) del.onclick=function(){ if(routeEdit.length<=2){ alert("Keep at least 2 pick-up points."); return; } routeEdit.splice(idx,1); m.closePopup(); refreshRoute(); };
+      var up=document.getElementById('rpUp'); if(up) up.onclick=function(){ if(idx<=0) return; var t=routeEdit[idx-1]; routeEdit[idx-1]=routeEdit[idx]; routeEdit[idx]=t; m.closePopup(); refreshRoute(); };
+      var dn=document.getElementById('rpDown'); if(dn) dn.onclick=function(){ if(idx>=routeEdit.length-1) return; var t=routeEdit[idx+1]; routeEdit[idx+1]=routeEdit[idx]; routeEdit[idx]=t; m.closePopup(); refreshRoute(); };
+    },40);
+  }
+  function addRoutePoint(){
+    if(!rMap){ return; } var c=rMap.getCenter();
+    routeEdit.push({ name:"New pick-up point", lat:c.lat, lng:c.lng, seg:0, via:[] });
+    refreshRoute();
+    var idx=routeEdit.length-1; if(rMarkers[idx]) openPointPopup(idx,rMarkers[idx]);
+  }
   function openRouteMap(){
-    buildRouteEdit(); $("cfgLabels").value=routeEditToText();
+    buildRouteEdit();
     loadLeaflet(function(){
       var box=$("routeMap"); if(!box) return;
-      if(rMap){ try{rMap.remove();}catch(e){} rMap=null; rMarkers=[]; rLine=null; }
-      rMap=L.map(box);
+      if(rMap){ try{rMap.remove();}catch(e){} rMap=null; }
+      clearRouteMarkers(); rLine=null;
+      rMap=L.map(box,{scrollWheelZoom:false});
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:'Tiles &copy; Esri'}).addTo(rMap);
-      var pts=[];
-      routeEdit.forEach(function(r,idx){
-        var m=L.marker([r.lat,r.lng],{draggable:true,icon:L.divIcon({className:'',html:'<div class="gg-pin">'+(idx+1)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(rMap);
-        m.on('dragend',function(){ var ll=m.getLatLng(); routeEdit[idx].lat=ll.lat; routeEdit[idx].lng=ll.lng; recalcSegs(); $("cfgLabels").value=routeEditToText(); drawRouteLine(); });
-        m.bindTooltip(r.name,{direction:'top'});
-        rMarkers.push(m); pts.push([r.lat,r.lng]);
-      });
-      drawRouteLine();
-      if(pts.length) rMap.fitBounds(pts,{padding:[28,28]});
+      drawRouteLine(); renderRouteMarkers(); recalcSegs(); $("cfgLabels").value=routeEditToText();
+      var b=reLoopCoords(); if(b.length) rMap.fitBounds(b,{padding:[30,30]});
       setTimeout(function(){ if(rMap) rMap.invalidateSize(); },300);
     });
   }
@@ -1313,7 +1381,7 @@
     $("cfgLabels").value=rt.map(function(r){ return r.name+" | "+r.seg; }).join("\n");
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
     $("cfgP1").value=cfg.priv[0]; $("cfgP2").value=cfg.priv[1]; $("cfgP3").value=cfg.priv[2];
-    $("cfgM2").value=cfg.mix[1]; $("cfgM3").value=cfg.mix[2];
+    $("cfgM3").value=cfg.mix[2];
     $("cfgPr1").value=cfg.prem[0]; $("cfgPr2").value=cfg.prem[1]; $("cfgPr3").value=cfg.prem[2];
     $("cfgPayLink").value=cfg.payLink||""; $("cfgChannel").value=cfg.channel||"";
     $("cfgWebhook").value=cfg.webhook||"";
@@ -1329,13 +1397,15 @@
     cfg.adminPin=$("cfgPin").value.trim()||"1234";
     cfg.homeEnabled=$("cfgHome").checked;
     cfg.waEnabled=$("cfgWa").checked;
-    var rlines=$("cfgLabels").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s;});
-    cfg.route=rlines.map(function(line,idx){ var p=line.split("|"); var o={ name:(p[0]||"").trim(), seg:(parseInt(String(p[1]||"").replace(/[^0-9]/g,""),10)||0) }; if(routeEdit[idx]&&routeEdit[idx].lat!=null){ o.lat=routeEdit[idx].lat; o.lng=routeEdit[idx].lng; } return o; });
+    if(routeEdit&&routeEdit.length){
+      recalcSegs();
+      cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); return o; });
+    }
     cfg.labels=[];
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
     cfg.privT=[numv("cfgPt1",600),numv("cfgPt2",900)];
     cfg.priv=[numv("cfgP1",20),numv("cfgP2",25),numv("cfgP3",30)];
-    var m2=numv("cfgM2",25); cfg.mix=[m2,m2,numv("cfgM3",20)];
+    var m3=numv("cfgM3",20); cfg.mix=[m3,m3,m3];
     cfg.prem=[numv("cfgPr1",50),numv("cfgPr2",40),numv("cfgPr3",30)];
     cfg.payLink=$("cfgPayLink").value.trim();
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
@@ -1544,6 +1614,8 @@
     $("revBack").addEventListener("click",closeReview);
     $("reviewModal").addEventListener("click",function(e){ if(e.target===$("reviewModal")) closeReview(); });
     $("againBtn").addEventListener("click",resetBooking);
+    $("bookBack").addEventListener("click",showHome);
+    $("doneBack").addEventListener("click",resetBooking);
     $("shareLocBtn").addEventListener("click",toggleShareLoc);
     $("resendBtn").addEventListener("click",function(){ if(lastBooking) notifyDriver(lastBooking); });
     $("gearBtn").addEventListener("click",function(){ requireAdmin(openAdmin); });
@@ -1552,6 +1624,7 @@
     $("adminOverlay").addEventListener("click",function(e){ if(e.target===$("adminOverlay")) closeAdmin(); });
     document.querySelectorAll(".tab").forEach(function(tb){ tb.addEventListener("click",function(){ switchTab(tb.getAttribute("data-tab")); }); });
     $("saveSettings").addEventListener("click",saveSettings);
+    $("addPoint").addEventListener("click",addRoutePoint);
     $("resetSettings").addEventListener("click",resetSettings);
     $("previewApp").addEventListener("click",function(){ try{ sessionStorage.setItem("gg_preview","1"); }catch(e){} location.href=location.pathname; });
     $("refreshReports").addEventListener("click",renderReports);
