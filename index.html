@@ -223,6 +223,19 @@
   .home-wa{display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;font-weight:800;
     padding:13px;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(37,211,102,.25);}
 
+  /* reports / analytics */
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 14px;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .stat .v{font-size:1.35rem;font-weight:800;color:var(--green-dark);}
+  .stat .l{font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+  .chart-title{font-size:.82rem;font-weight:800;color:var(--ink);margin:16px 0 6px;}
+  .chart{display:flex;align-items:flex-end;gap:6px;height:130px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow-x:auto;}
+  .bar{flex:0 0 auto;width:30px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;}
+  .bar .bv{font-size:.55rem;color:var(--ink);font-weight:700;}
+  .bar .b{width:20px;border-radius:5px 5px 0 0;background:var(--green);min-height:2px;}
+  .bar.amber .b{background:var(--accent);} .bar.blue .b{background:#2b7fd8;}
+  .bar .bl{font-size:.52rem;color:var(--muted);white-space:nowrap;}
+
   /* launching soon */
   .launch{min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px 20px;gap:4px;}
   .launch .llogo{width:120px;height:auto;margin-bottom:8px;}
@@ -404,6 +417,7 @@
     <div class="modal-body">
       <div class="tabs no-print">
         <button class="tab active" data-tab="settings">Settings</button>
+        <button class="tab" data-tab="reports">📊 Reports</button>
         <button class="tab" data-tab="qr">QR Codes</button>
         <button class="tab" data-tab="log">Bookings</button>
         <button class="tab" data-tab="host">Hosting</button>
@@ -487,8 +501,20 @@
           <input type="text" id="cfgWebhook" placeholder="https://your-n8n.app/webhook/gogolfy" />
         </div>
 
+        <div class="sec-title">Analytics</div>
+        <div class="g2">
+          <div class="field"><label>Cost per ride (EGP)</label><div class="desc">Used for profit & margin.</div><input type="number" id="cfgCost" min="0" step="0.5" /></div>
+          <div class="field"><label>Stats API URL</label><div class="desc">n8n GET endpoint.</div><input type="text" id="cfgStats" placeholder="https://your-n8n.app/webhook/gogolfy-stats" /></div>
+        </div>
+
         <button class="save-btn" id="saveSettings">Save settings</button>
         <div class="btn-row"><button id="previewApp">👁 Preview booking app</button><button id="resetSettings" class="red">Reset to defaults</button></div>
+      </div>
+
+      <div id="tab-reports" class="hidden">
+        <div class="mini-note">Live revenue, residents and profit from your bookings (via the Stats API). Profit = revenue − (cost per ride × rides).</div>
+        <div class="btn-row no-print"><button id="refreshReports">🔄 Refresh</button></div>
+        <div id="reportsBody"><div class="dash-empty" id="reportsMsg">Loading…</div></div>
       </div>
 
       <div id="tab-qr" class="hidden">
@@ -590,7 +616,9 @@
     adminPin:"1234",                               // change this in Admin → Settings
     homeEnabled:true,                              // admin can open/close Home pickup (Premium)
     waEnabled:false,                               // WhatsApp driver alert held until API ready
-    labels:[]                                      // optional on-the-ground point labels (override names)
+    labels:[],                                     // optional on-the-ground point labels (override names)
+    cost:0,                                        // cost per ride (EGP) for profit/margin
+    statsUrl:"https://hatemsully.app.n8n.cloud/webhook/gogolfy-stats"  // analytics API
   };
 
   function loadCfg(){ try{ return Object.assign({},DEFAULTS,JSON.parse(lsGet(LS_CFG))||{}); }catch(e){ return Object.assign({},DEFAULTS); } }
@@ -630,7 +658,7 @@
       m_pickup:"Pickup", m_drop:"Drop-off", m_res:"Residents", m_type:"Ride type", m_dist:"Distance", m_fare:"Fare",
       pay:"💳 Pay now (InstaPay)", payTitle:"How would you like to pay?",
       cash:"💵 Pay cash to driver", paySel:"✓ InstaPay opened", cashSel:"✓ Cash selected — pay the driver",
-      b_cash:"💵 Cash", st_waiting:"Waiting for a driver to accept…",
+      b_cash:"💵 Cash", st_onway:"✅ Booking confirmed — a driver is on the way!", st_waiting:"Waiting for a driver to accept…",
       st_accepted:"✅ Driver accepted — on the way!", st_arriving:"🚗 Driver is arriving now",
       st_done:"🏁 Ride completed — thank you!", st_paid:"💳 Payment opened in InstaPay",
       driverTitle:"Driver Dashboard", driverSub:"Live ride requests", noRides:"No ride requests yet — waiting…",
@@ -666,7 +694,7 @@
       m_pickup:"الانطلاق", m_drop:"الوجهة", m_res:"الركاب", m_type:"نوع الرحلة", m_dist:"المسافة", m_fare:"الأجرة",
       pay:"💳 ادفع الآن (إنستاباي)", payTitle:"كيف تحب أن تدفع؟",
       cash:"💵 الدفع نقدًا للسائق", paySel:"✓ تم فتح إنستاباي", cashSel:"✓ تم اختيار النقد — ادفع للسائق",
-      b_cash:"💵 نقدًا", st_waiting:"في انتظار قبول السائق…",
+      b_cash:"💵 نقدًا", st_onway:"✅ تم تأكيد الحجز — السائق في الطريق إليك!", st_waiting:"في انتظار قبول السائق…",
       st_accepted:"✅ قبل السائق — في الطريق إليك!", st_arriving:"🚗 السائق يصل الآن",
       st_done:"🏁 اكتملت الرحلة — شكرًا لك!", st_paid:"💳 تم فتح الدفع في إنستاباي",
       driverTitle:"لوحة السائق", driverSub:"طلبات الرحلات المباشرة", noRides:"لا توجد طلبات بعد — في الانتظار…",
@@ -821,15 +849,17 @@
     var url=cfg.phone?("https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+text):("https://wa.me/?text="+text);
     window.open(url,"_blank");
   }
+  function pad2(n){ return (n<10?"0":"")+n; }
   function currentBooking(){
     var f=computeFare(state.rideType,state.residents,state.pickup,state.destination);
     var now=new Date();
+    var dateStr=now.getFullYear()+"-"+pad2(now.getMonth()+1)+"-"+pad2(now.getDate());
     return { kind:"ride", pickupName:pickupLabel(), pickupTag:pickupTag(), pickup:state.home?"home":state.pickup,
       destination:state.destination, destName:cpName(state.destination), residents:state.residents,
       rideType:state.rideType, typeName:typeName(state.rideType),
       distance:(f.dist==null?null:Math.round(f.dist)), fare:Math.round(f.total*100)/100, fareStr:money(f.total),
       clientPhone:(($("clientPhone")&&$("clientPhone").value)||"").replace(/[^0-9]/g,""), driverPhone:(cfg.phone||""),
-      lang:lang, time:now.toISOString(), timeStr:now.toLocaleString(), timeShort:now.toLocaleTimeString() };
+      lang:lang, date:dateStr, time:now.toISOString(), timeStr:now.toLocaleString(), timeShort:now.toLocaleTimeString() };
   }
   function pushLog(b){ var log=[]; try{ log=JSON.parse(lsGet(LS_LOG))||[]; }catch(e){} log.unshift(b); if(log.length>300) log=log.slice(0,300); lsSet(LS_LOG,JSON.stringify(log)); }
   var lastBooking=null;
@@ -844,7 +874,7 @@
     webhookPost(b);                   // n8n automation (private — Google Sheet + Telegram/WhatsApp)
     if(state.payMethod==="instapay" && cfg.payLink) window.open(cfg.payLink,"_blank");
     showReceipt(b);
-    setResidentStatus("waiting"); listenStatus();
+    setResidentStatus("onway");
   }
   function flashBtn(el,txt){ if(!el) return; var o=el.getAttribute("data-orig")||el.textContent; el.setAttribute("data-orig",o); el.textContent=txt; clearTimeout(el._ft); el._ft=setTimeout(function(){ el.textContent=el.getAttribute("data-orig"); },2000); }
   function reportPayment(b,method){
@@ -908,11 +938,46 @@
   }
   function closeAdmin(){ $("adminOverlay").classList.add("hidden"); }
   function switchTab(name){
-    ["settings","qr","log","host"].forEach(function(x){ $("tab-"+x).classList.toggle("hidden",x!==name); });
+    ["settings","reports","qr","log","host"].forEach(function(x){ $("tab-"+x).classList.toggle("hidden",x!==name); });
     document.querySelectorAll(".tab").forEach(function(el){ el.classList.toggle("active",el.getAttribute("data-tab")===name); });
     if(name==="log") renderLog();
+    if(name==="reports") renderReports();
     if(name==="qr"&&!$("cfgBaseUrl").value) $("cfgBaseUrl").value=cfg.baseUrl||defaultBaseUrl();
     if(name==="qr") $("autoReply").value=buildAutoReply();
+  }
+  function curUnit(){ return lang==="ar"?"ج.م":"EGP"; }
+  function barChart(data, key, cls, fmt){
+    if(!data.length) return '<div class="dash-empty">—</div>';
+    var max=1; data.forEach(function(d){ if(d[key]>max) max=d[key]; });
+    return '<div class="chart">'+data.map(function(d){
+      var h=Math.max(2,Math.round((d[key]/max)*96));
+      var lbl=String(d.date).slice(5); // MM-DD
+      return '<div class="bar '+cls+'"><div class="bv">'+(fmt?fmt(d[key]):d[key])+'</div><div class="b" style="height:'+h+'px"></div><div class="bl">'+esc(lbl)+'</div></div>';
+    }).join("")+'</div>';
+  }
+  function renderReports(){
+    var box=$("reportsBody"); box.innerHTML='<div class="dash-empty">'+esc(lang==="ar"?"جارٍ التحميل…":"Loading…")+'</div>';
+    if(!cfg.statsUrl){ box.innerHTML='<div class="mini-note warn-note">Set the Stats API URL in Settings.</div>'; return; }
+    fetch(cfg.statsUrl,{cache:"no-store"}).then(function(r){ return r.json(); }).then(function(s){
+      var days=(s&&s.days)||[]; var cost=Number(cfg.cost)||0;
+      days.forEach(function(d){ d.profit=Math.round((d.revenue-cost*d.rides)*100)/100; });
+      var last=days.slice(-14);
+      var tot=(s&&s.totals)||{revenue:0,residents:0,rides:0};
+      var profit=Math.round((tot.revenue-cost*tot.rides)*100)/100;
+      var margin=tot.revenue>0?Math.round(profit/tot.revenue*1000)/10:0;
+      if(!days.length){ box.innerHTML='<div class="mini-note">No bookings logged yet. Once residents book (and the «Bookings» sheet tab exists), charts appear here.</div>'; return; }
+      var u=curUnit();
+      var html='<div class="stat-grid">'
+        +'<div class="stat"><div class="v">'+tot.revenue+' '+u+'</div><div class="l">Revenue</div></div>'
+        +'<div class="stat"><div class="v">'+profit+' '+u+'</div><div class="l">Profit ('+margin+'%)</div></div>'
+        +'<div class="stat"><div class="v">'+tot.rides+'</div><div class="l">Rides</div></div>'
+        +'<div class="stat"><div class="v">'+tot.residents+'</div><div class="l">Residents</div></div>'
+        +'</div>';
+      html+='<div class="chart-title">💵 Revenue / day ('+u+')</div>'+barChart(last,"revenue","",null);
+      html+='<div class="chart-title">👥 Residents / day</div>'+barChart(last,"residents","blue",null);
+      html+='<div class="chart-title">📈 Profit / day ('+u+')</div>'+barChart(last,"profit","amber",null);
+      box.innerHTML=html;
+    }).catch(function(e){ box.innerHTML='<div class="mini-note warn-note">Could not load stats. Check the Stats API URL and that the workflow is active.</div>'; });
   }
   function buildAutoReply(){
     var u=cfg.baseUrl||"https://gogolfy.net/";
@@ -931,6 +996,7 @@
     $("cfgPr1").value=cfg.prem[0]; $("cfgPr2").value=cfg.prem[1]; $("cfgPr3").value=cfg.prem[2];
     $("cfgPayLink").value=cfg.payLink||""; $("cfgChannel").value=cfg.channel||"";
     $("cfgWebhook").value=cfg.webhook||"";
+    $("cfgCost").value=cfg.cost||0; $("cfgStats").value=cfg.statsUrl||"";
     $("cfgBaseUrl").value=cfg.baseUrl||"";
   }
   function numv(id,d){ var v=Number($(id).value); return isNaN(v)?d:v; }
@@ -948,6 +1014,7 @@
     cfg.payLink=$("cfgPayLink").value.trim();
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
     cfg.webhook=$("cfgWebhook").value.trim();
+    cfg.cost=Number($("cfgCost").value)||0; cfg.statsUrl=$("cfgStats").value.trim();
     cfg.baseUrl=$("cfgBaseUrl").value.trim();
     saveCfg();
     if(state.driver) connectDash();
@@ -1014,9 +1081,8 @@
   }
   function setResidentStatus(stKey){
     var el=$("statusLine"); if(!el) return;
-    var map={waiting:"st_waiting",accepted:"st_accepted",arriving:"st_arriving",done:"st_done"};
-    el.classList.toggle("live-wait", stKey==="waiting");
-    el.innerHTML=(stKey==="waiting"?'<span class="pulse"></span>':'')+t(map[stKey]||"st_waiting");
+    el.classList.remove("live-wait");
+    el.innerHTML=t("st_onway");
   }
 
   // ---- driver dashboard ----
@@ -1054,28 +1120,22 @@
       renderDash();
     }
   }
-  function driverSetStatus(id,st){ if(!rides[id]) return; rides[id].status=st; renderDash(); publish({kind:"status",id:id,status:st}); }
-  function stLabel(st){ var en={"new":"New",accepted:"Accepted",arriving:"Arriving",done:"Done"}, ar={"new":"جديد",accepted:"مقبول",arriving:"يصل",done:"تم"}; return (lang==="ar"?ar:en)[st]||st; }
+  function driverClear(id){ delete rides[id]; order=order.filter(function(x){ return x!==id; }); renderDash(); }
   function renderDash(){
     var box=$("dashList");
     if(!order.length){ box.innerHTML='<div class="dash-empty">'+esc(t("noRides"))+'</div>'; return; }
     box.innerHTML=order.map(function(id){
-      var r=rides[id], st=r.status||"new";
+      var r=rides[id];
       var payBadge=r.payMethod==="cash"?'<span class="badge cash">'+esc(t("b_cash"))+'</span>':(r.payMethod==="instapay"?'<span class="badge pay">'+esc(t("b_paid"))+'</span>':'');
-      var badges='<span class="badge '+(st==="new"?"new":"")+'">'+esc(stLabel(st))+'</span>'+payBadge;
       var dist=(r.distance!=null)?(" · ~"+r.distance+" m"):"";
-      return '<div class="dcard s-'+st+'"><div class="d-top"><div>'
+      return '<div class="dcard s-new"><div class="d-top"><div>'
         +'<div class="d-route">'+esc(r.pickupName)+' → '+esc(r.destName)+'</div>'
         +'<div class="d-meta">'+esc(r.typeName||"")+' · '+r.residents+'👥'+dist+' · '+esc(r.timeShort||"")+'</div>'
-        +'<div class="d-badges">'+badges+'</div></div>'
+        +'<div class="d-badges">'+payBadge+'</div></div>'
         +'<div class="d-fare">'+esc(r.fareStr||"")+'</div></div>'
-        +'<div class="d-actions">'
-        +'<button class="'+(st==="accepted"?"act":"")+'" data-id="'+id+'" data-st="accepted">'+esc(t("b_accept"))+'</button>'
-        +'<button class="'+(st==="arriving"?"act":"")+'" data-id="'+id+'" data-st="arriving">'+esc(t("b_arrive"))+'</button>'
-        +'<button class="'+(st==="done"?"act":"")+'" data-id="'+id+'" data-st="done">'+esc(t("b_done"))+'</button>'
-        +'</div></div>';
+        +'<div class="d-actions"><button data-id="'+id+'">'+esc(t("b_done"))+'</button></div></div>';
     }).join("");
-    box.querySelectorAll(".d-actions button").forEach(function(b){ b.addEventListener("click",function(){ driverSetStatus(b.getAttribute("data-id"),b.getAttribute("data-st")); }); });
+    box.querySelectorAll(".d-actions button").forEach(function(b){ b.addEventListener("click",function(){ driverClear(b.getAttribute("data-id")); }); });
   }
   function beep(){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination); o.type="sine"; o.frequency.value=880; g.gain.value=.12; o.start(); setTimeout(function(){o.frequency.value=1175;},120); setTimeout(function(){o.stop();a.close();},260); }catch(e){} }
 
@@ -1102,6 +1162,7 @@
     $("saveSettings").addEventListener("click",saveSettings);
     $("resetSettings").addEventListener("click",resetSettings);
     $("previewApp").addEventListener("click",function(){ try{ sessionStorage.setItem("gg_preview","1"); }catch(e){} location.href=location.pathname; });
+    $("refreshReports").addEventListener("click",renderReports);
     $("genQr").addEventListener("click",genQr);
     $("printQr").addEventListener("click",function(){ window.print(); });
     $("copyAutoReply").addEventListener("click",function(){ var b=$("copyAutoReply"); navigator.clipboard&&navigator.clipboard.writeText($("autoReply").value); var o=b.textContent; b.textContent="✓ Copied"; setTimeout(function(){ b.textContent=o; },1400); });
