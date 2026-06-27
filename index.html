@@ -203,12 +203,17 @@
   .gg-pin.ds{background:var(--accent);border-color:#e0a106;color:#15241c;}
   .leaflet-container{font-family:inherit;}
   /* booking guide map */
-  #bookMap{width:100%;height:190px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
-  .map-cap{font-size:.76rem;color:var(--muted);margin-top:9px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
-  .map-cap .lg{display:inline-flex;align-items:center;gap:6px;}
-  .map-cap .dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);}
-  .map-cap .dot.pk{background:var(--green);} .map-cap .dot.ds{background:var(--accent);}
-  .map-cap b{color:var(--green-dark);font-weight:700;}
+  #bookMap{width:100%;height:240px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
+  .gg-pin.gg-pin-lg{width:36px;height:36px;font-size:16px;border-width:3px;}
+  .gg-tip{background:rgba(255,255,255,.96);border:none!important;border-radius:9px;padding:3px 9px;font-weight:800;font-size:.74rem;box-shadow:0 2px 8px rgba(0,0,0,.35);white-space:nowrap;}
+  .gg-tip.gg-tip-pk{color:var(--green-dark);} .gg-tip.gg-tip-ds{color:#c0392b;}
+  .gg-tip.leaflet-tooltip-top:before{border-top-color:rgba(255,255,255,.96);}
+  .gg-tip.leaflet-tooltip-bottom:before{border-bottom-color:rgba(255,255,255,.96);}
+  .map-cap{font-size:.8rem;color:var(--ink);margin-top:10px;display:flex;gap:8px;flex-direction:column;}
+  .map-cap .lg{display:inline-flex;align-items:center;gap:8px;}
+  .map-cap .dot{width:24px;height:24px;border-radius:50%;flex:0 0 auto;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);color:#fff;font-weight:800;font-size:.74rem;display:inline-flex;align-items:center;justify-content:center;}
+  .map-cap .dot.pk{background:var(--green);} .map-cap .dot.ds{background:var(--accent);color:#15241c;}
+  .map-cap b{color:var(--green-dark);font-weight:800;}
   /* review — modify before submit */
   .rev-overlay{position:fixed;inset:0;background:rgba(15,36,28,.55);display:flex;align-items:flex-end;justify-content:center;z-index:1200;}
   .rev-card{background:var(--bg);width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px 24px;max-height:92vh;overflow:auto;box-shadow:0 -10px 40px rgba(0,0,0,.3);animation:revUp .25s ease;}
@@ -291,7 +296,14 @@
   .confirm-btn.ready{animation:cbpulse 1.7s ease-in-out infinite;}
   @keyframes cbpulse{0%,100%{box-shadow:0 6px 22px rgba(11,122,59,.30);transform:translateY(0)}50%{box-shadow:0 10px 34px rgba(11,122,59,.6);transform:translateY(-1px)}}
   .hint.ready{color:var(--green-dark);font-weight:800;font-size:.86rem;}
-  .fare-guide{font-size:.76rem;color:var(--green-dark);margin-top:10px;line-height:1.6;background:var(--green-light);border-radius:10px;padding:9px 11px;font-weight:600;}
+  .fare-guide{margin-top:10px;background:var(--green-light);border-radius:12px;padding:10px 11px;}
+  .fg-title{font-weight:800;color:var(--green-dark);font-size:.8rem;margin-bottom:6px;}
+  .fg-row{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:5px 7px;border-radius:8px;font-size:.78rem;margin-bottom:2px;}
+  .fg-row .fg-k{color:var(--ink);font-weight:600;}
+  .fg-row .fg-v{color:var(--green-dark);white-space:nowrap;text-align:end;}
+  .fg-row .fg-v b{font-size:.84rem;}
+  .fg-row.on{background:#fff;box-shadow:0 1px 5px rgba(31,154,72,.22);}
+  .fg-row.on .fg-k{color:var(--green-dark);font-weight:800;}
   .fare-guide b{color:var(--green-dark);}
 
   @media print{
@@ -585,7 +597,7 @@
           <div class="field"><label>≥ Band 2</label><input type="number" id="cfgP3" /></div>
         </div>
 
-        <div class="sec-title">Shared ride — per person (EGP) · auto-used for 2+ residents</div>
+        <div class="sec-title">Group ride — per person (EGP) · auto-used for 2+ residents</div>
         <div class="g2">
           <div class="field"><label>2 people (each)</label><input type="number" id="cfgM2" /></div>
           <div class="field"><label>3+ people (each)</label><input type="number" id="cfgM3" /></div>
@@ -730,7 +742,7 @@
     phone:"201094000115", maxRes:6,
     privT:[600,900],         // Private distance thresholds (m): ≤600 / 600–900 / ≥900
     priv:[20,25,30],         // Private per person by distance band
-    mix:[20,20,15],          // Mixed per person for 1 / 2 / 3+
+    mix:[25,25,20],          // Group ride per person for 1 / 2 / 3+ (2→25, 3+→20)
     prem:[50,40,30],         // Premium per person for 1 / 2 / 3+
     baseUrl:"https://gogolfy.net/",               // your domain (used for QR codes & driver link)
     payLink:"https://ipn.eg/S/hatemsully/instapay/4T6VhV",
@@ -926,7 +938,7 @@
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
   var bMap=null, bMarkers=[], bLine=null;
-  function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin '+kind, html:String(txt), iconSize:[28,28], iconAnchor:[14,14]}); }
+  function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
   function updateMap(){
     var card=$("mapCard"); if(!card) return;
     if(state.home || !state.pickup || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); return; }
@@ -937,23 +949,26 @@
         bMap=L.map('bookMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(bMap);
       }
-      bMarkers.forEach(function(m){ bMap.removeLayer(m); }); bMarkers=[];
+      bMarkers.forEach(function(m){ try{m.unbindTooltip();}catch(e){} bMap.removeLayer(m); }); bMarkers=[];
       if(bLine){ bMap.removeLayer(bLine); bLine=null; }
+      try{ var tp=bMap.getPane('tooltipPane'); if(tp) tp.innerHTML=''; }catch(e){}
       var pc=ptCoord(state.pickup);
-      var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk')}).addTo(bMap);
-      pm.bindTooltip(cpName(state.pickup)+" — "+t("mapPickWait"),{direction:'top'}); bMarkers.push(pm);
+      var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk'),zIndexOffset:1000}).addTo(bMap);
+      pm.bindTooltip("📍 "+cpName(state.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); bMarkers.push(pm);
       if(state.destination){
         var dc=ptCoord(state.destination);
-        var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds')}).addTo(bMap);
-        dm.bindTooltip(cpName(state.destination),{direction:'top'}); bMarkers.push(dm);
+        var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds'),zIndexOffset:1000}).addTo(bMap);
+        dm.bindTooltip("🎯 "+cpName(state.destination),{permanent:true,direction:'bottom',offset:[0,19],className:'gg-tip gg-tip-ds'}); bMarkers.push(dm);
         var gc=getComputedStyle(document.documentElement).getPropertyValue('--green').trim()||'#1f9a48';
-        bLine=L.polyline([pc,dc],{color:gc,weight:4,opacity:.9,dashArray:'2 9',lineCap:'round'}).addTo(bMap);
-        bMap.fitBounds(L.latLngBounds([pc,dc]),{padding:[42,42],maxZoom:17});
-      } else { bMap.setView(pc,16); }
+        var casing=L.polyline([pc,dc],{color:'#ffffff',weight:8,opacity:.85,lineCap:'round'});
+        var path=L.polyline([pc,dc],{color:gc,weight:4.5,opacity:1,dashArray:'1 12',lineCap:'round'});
+        bLine=L.layerGroup([casing,path]).addTo(bMap);
+        bMap.fitBounds(L.latLngBounds([pc,dc]),{paddingTopLeft:[75,48],paddingBottomRight:[75,48],maxZoom:17});
+      } else { bMap.setView(pc,17); }
       setTimeout(function(){ try{ bMap.invalidateSize(); }catch(e){} },160);
       var cap=$("bookMapCap");
-      if(cap){ cap.innerHTML='<span class="lg"><span class="dot pk"></span><b>#'+state.pickup+'</b> '+esc(t("mapPickWait"))+'</span>'
-        +(state.destination?('<span class="lg"><span class="dot ds"></span><b>#'+state.destination+'</b> '+esc(t("mapDestLeg"))+'</span>'):''); }
+      if(cap){ cap.innerHTML='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</span>'
+        +(state.destination?('<span class="lg"><span class="dot ds">'+state.destination+'</span> <b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</span>'):''); }
     });
   }
   function rtDesc(ty){
@@ -971,9 +986,17 @@
   function renderFareGuide(){
     var el=$("fareGuide"); if(!el) return;
     var u=cur(), each=lang==="ar"?"للفرد":"each", byd=lang==="ar"?"حسب المسافة":"by distance";
-    var one=(lang==="ar"?"👤 رحلة فردية (راكب واحد)":"👤 Single ride (1 person)")+": <b>"+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+"</b> "+byd;
-    var shared=(lang==="ar"?"👥 رحلة جماعية (2+)":"👥 Group ride (2+)")+": <b>"+cfg.mix[1]+" "+u+"</b> "+each+" (2), <b>"+cfg.mix[2]+" "+u+"</b> "+each+" (3+)";
-    el.innerHTML=one+"<br>"+shared;
+    var ar=(lang==="ar");
+    var title=ar?"💡 الأسعار (لكل راكب)":"💡 Fares (per person)";
+    var rSingle=ar?"رحلة فردية · راكب واحد":"Single ride · 1 person";
+    var rG2=ar?"رحلة جماعية · راكبان":"Group ride · 2 people";
+    var rG3=ar?"رحلة جماعية · 3 أو أكثر":"Group ride · 3+ people";
+    function row(on,icon,k,v){ return '<div class="fg-row'+(on?" on":"")+'"><span class="fg-k">'+icon+' '+k+'</span><span class="fg-v">'+v+'</span></div>'; }
+    var html='<div class="fg-title">'+title+'</div>'
+      +row(state.residents<=1,"👤",rSingle,"<b>"+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+"</b> "+byd)
+      +row(state.residents===2,"👥",rG2,"<b>"+cfg.mix[1]+" "+u+"</b> "+each)
+      +row(state.residents>=3,"👥",rG3,"<b>"+cfg.mix[2]+" "+u+"</b> "+each);
+    el.innerHTML=html;
   }
   function renderRtypes(){
     autoType();
@@ -1146,7 +1169,7 @@
     ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT","homeStepsT","chip1","chip2","chip3","chip4"].forEach(function(k){ $(k).textContent=t(k); });
     var u=cur();
     var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u]];
-    rows.push([typeName("mixed"), cfg.mix[0]+"/"+cfg.mix[2]+" "+u]);
+    rows.push([typeName("mixed"), cfg.mix[1]+"/"+cfg.mix[2]+" "+u]);
     if(cfg.homeEnabled!==false) rows.push([typeName("premium"), cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u]);
     $("homeFares").innerHTML=rows.map(function(r){ return '<div class="fare-row"><span>'+esc(r[0])+'</span><span class="muted">'+esc(r[1])+'</span></div>'; }).join("");
     var wa=$("homeWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("homeWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
@@ -1265,7 +1288,7 @@
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
     cfg.privT=[numv("cfgPt1",600),numv("cfgPt2",900)];
     cfg.priv=[numv("cfgP1",20),numv("cfgP2",25),numv("cfgP3",30)];
-    var m2=numv("cfgM2",20); cfg.mix=[m2,m2,numv("cfgM3",15)];
+    var m2=numv("cfgM2",25); cfg.mix=[m2,m2,numv("cfgM3",20)];
     cfg.prem=[numv("cfgPr1",50),numv("cfgPr2",40),numv("cfgPr3",30)];
     cfg.payLink=$("cfgPayLink").value.trim();
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
