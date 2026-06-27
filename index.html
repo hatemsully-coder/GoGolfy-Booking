@@ -263,16 +263,21 @@
     <button class="hbtn lang" id="langBtn">EN</button>
     <button class="hbtn gear hidden" id="gearBtn" title="Admin" aria-label="Admin">⚙️</button>
     <div class="brand">
-      <svg class="logo-cart" viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <g fill="#ffffff">
-          <rect x="18" y="14" width="86" height="9" rx="4.5"/>
-          <path d="M104 14 h10 a4 4 0 0 1 4 4 v5 h-14 z"/>
-          <rect x="24" y="21" width="6" height="22" rx="3"/>
-          <rect x="98" y="21" width="6" height="22" rx="3"/>
-          <path d="M14 56 v-9 a5 5 0 0 1 5 -5 h66 a5 5 0 0 1 3.5 1.5 l11 11 h17 a4 4 0 0 1 4 4 h-18 a12 12 0 0 0 -24 0 h-24 a12 12 0 0 0 -24 0 h-3 a5 5 0 0 1 -5 -3.5 z"/>
+      <svg class="logo-cart" viewBox="0 0 150 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M24 22 H116"/>
+          <path d="M32 22 V42"/>
+          <path d="M108 22 V36"/>
+          <path d="M108 36 L124 60"/>
+          <path d="M24 42 V60 H124"/>
+          <path d="M60 42 V58"/>
         </g>
-        <circle cx="45" cy="64" r="11" fill="#ffffff"/><circle cx="45" cy="64" r="5" fill="#0b7a3b"/>
-        <circle cx="93" cy="64" r="11" fill="#ffffff"/><circle cx="93" cy="64" r="5" fill="#0b7a3b"/>
+        <g fill="#ffffff">
+          <rect x="32" y="46" width="24" height="7" rx="3"/>
+          <rect x="66" y="46" width="34" height="7" rx="3"/>
+        </g>
+        <circle cx="46" cy="74" r="13" fill="#ffffff"/><circle cx="46" cy="74" r="5.5" fill="#0b7a3b"/>
+        <circle cx="106" cy="74" r="13" fill="#ffffff"/><circle cx="106" cy="74" r="5.5" fill="#0b7a3b"/>
       </svg>
       <span class="brand-text">GoGolfy</span>
     </div>
@@ -450,9 +455,9 @@
           <label class="switch"><input type="checkbox" id="cfgWa" /><span class="slider"></span></label>
         </div>
         <div class="field">
-          <label>Pick-up point labels (on the ground)</label>
-          <div class="desc">One label per line for points 1–12, in order. Set them to match your real gate numbers/signs. Leave a line blank to keep the default.</div>
-          <textarea id="cfgLabels" rows="6" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.9rem;font-family:inherit;background:#fff;color:var(--ink);"></textarea>
+          <label>Pick-up points & route</label>
+          <div class="desc">One line per point <b>in order (the sequence)</b>, format: <code>Name | distance to next point (m)</code>. Reorder lines to change the sequence; edit names &amp; distances freely. Fares use these distances. The last point loops back to the first.</div>
+          <textarea id="cfgLabels" rows="8" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-family:monospace;background:#fff;color:var(--ink);"></textarea>
         </div>
 
         <div class="sec-title">Private — per person, by ride distance (EGP)</div>
@@ -506,6 +511,10 @@
           <div class="field"><label>Cost per ride (EGP)</label><div class="desc">Used for profit & margin.</div><input type="number" id="cfgCost" min="0" step="0.5" /></div>
           <div class="field"><label>Stats API URL</label><div class="desc">n8n GET endpoint.</div><input type="text" id="cfgStats" placeholder="https://your-n8n.app/webhook/gogolfy-stats" /></div>
         </div>
+
+        <div class="sec-title">Welcome message (landing page)</div>
+        <div class="field"><label>Welcome title</label><input type="text" id="cfgWelTitle" placeholder="Need a ride? 🛺" /></div>
+        <div class="field"><label>Welcome subtitle</label><input type="text" id="cfgWelSub" placeholder="GoGolfy — your golf-cart shuttle…" /></div>
 
         <button class="save-btn" id="saveSettings">Save settings</button>
         <div class="btn-row"><button id="previewApp">👁 Preview booking app</button><button id="resetSettings" class="red">Reset to defaults</button></div>
@@ -596,10 +605,11 @@
     {cp:9,  en:"Pick Up Point 11", ar:"نقطة استلام 11", lat:29.971300, lng:31.530400},
     {cp:8,  en:"Pick Up Point 12", ar:"نقطة استلام 12", lat:29.971950, lng:31.532800}
   ];
-  var N=CHECKPOINTS.length; // 12
-  // outer-loop cumulative positions (m) from the official workbook
-  var LOOP_POS={1:0,2:170,3:335,4:545,5:775,6:1040,7:1305,8:1500,9:1750,10:1980,11:2250,12:2545};
-  var LOOP_TOTAL=2855;
+  // distance (m) from each point to the NEXT around the loop — built-in defaults; admin can edit via cfg.route
+  var DEFAULT_SEG=[265,265,230,210,165,170,310,295,270,230,250,195];
+  var N=CHECKPOINTS.length;  // recomputed from cfg.route after cfg loads
+  function segOf(i){ if(cfg.route&&cfg.route[i-1]) return Number(cfg.route[i-1].seg)||0; return DEFAULT_SEG[i-1]||0; }
+  function routePos(){ var pos={}, acc=0; for(var i=1;i<=N;i++){ pos[i]=acc; acc+=segOf(i); } pos._total=acc||1; return pos; }
 
   var RIDE_TYPES=["private","mixed","premium"];
 
@@ -614,16 +624,20 @@
     channel:"gogolfy-darmasr-andalous-7K3p9Qx2",  // shared live channel (same on all devices)
     webhook:"https://hatemsully.app.n8n.cloud/webhook/gogolfy",  // n8n webhook (Google Sheet + WhatsApp notifications)
     adminPin:"1234",                               // change this in Admin → Settings
-    homeEnabled:true,                              // admin can open/close Home pickup (Premium)
+    homeEnabled:false,                             // Premium/Home OFF until admin opens it in the panel
     waEnabled:false,                               // WhatsApp driver alert held until API ready
-    labels:[],                                     // optional on-the-ground point labels (override names)
+    labels:[],                                     // (legacy) name overrides
+    route:[],                                      // editable [{name, seg(m to next)}]; empty = built-in 12-point loop
     cost:0,                                        // cost per ride (EGP) for profit/margin
-    statsUrl:"https://hatemsully.app.n8n.cloud/webhook/gogolfy-stats"  // analytics API
+    statsUrl:"https://hatemsully.app.n8n.cloud/webhook/gogolfy-stats",  // analytics API
+    welcomeTitle:"",                               // landing welcome title (blank = default)
+    welcomeSub:""                                  // landing welcome subtitle (blank = default)
   };
 
   function loadCfg(){ try{ return Object.assign({},DEFAULTS,JSON.parse(lsGet(LS_CFG))||{}); }catch(e){ return Object.assign({},DEFAULTS); } }
   function saveCfg(){ lsSet(LS_CFG,JSON.stringify(cfg)); }
   var cfg=loadCfg();
+  N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
   var lang=lsGet(LS_LANG)||"ar";
 
   // ---- translations ----
@@ -662,7 +676,8 @@
       st_accepted:"✅ Driver accepted — on the way!", st_arriving:"🚗 Driver is arriving now",
       st_done:"🏁 Ride completed — thank you!", st_paid:"💳 Payment opened in InstaPay",
       driverTitle:"Driver Dashboard", driverSub:"Live ride requests", noRides:"No ride requests yet — waiting…",
-      live:"Live", offline:"Offline", b_accept:"Accept", b_arrive:"Arriving", b_done:"Done", b_paid:"💳 Paid"
+      live:"Live", offline:"Offline", b_accept:"Accept", b_arrive:"Arriving", b_done:"✅ Done (paid)", b_paid:"💳 Paid",
+      notePrompt:"Trip done — money received. Add a note (optional):"
     },
     ar:{
       tagline:"رحلتك في الداخل · امسح للركوب", compound:"دار مصر الأندلس",
@@ -698,18 +713,17 @@
       st_accepted:"✅ قبل السائق — في الطريق إليك!", st_arriving:"🚗 السائق يصل الآن",
       st_done:"🏁 اكتملت الرحلة — شكرًا لك!", st_paid:"💳 تم فتح الدفع في إنستاباي",
       driverTitle:"لوحة السائق", driverSub:"طلبات الرحلات المباشرة", noRides:"لا توجد طلبات بعد — في الانتظار…",
-      live:"مباشر", offline:"غير متصل", b_accept:"قبول", b_arrive:"يصل", b_done:"تم", b_paid:"💳 مدفوع"
+      live:"مباشر", offline:"غير متصل", b_accept:"قبول", b_arrive:"يصل", b_done:"✅ تم (مدفوع)", b_paid:"💳 مدفوع",
+      notePrompt:"تمت الرحلة — تم استلام المبلغ. أضف ملاحظة (اختياري):"
     }
   };
   function t(k){ return (T[lang]&&T[lang][k]!=null)?T[lang][k]:T.en[k]; }
-  function cpName(i){ var ov=cfg.labels&&cfg.labels[i-1]; if(ov&&String(ov).trim()) return String(ov).trim(); return CHECKPOINTS[i-1]?(lang==="ar"?CHECKPOINTS[i-1].ar:CHECKPOINTS[i-1].en):("#"+i); }
+  function cpName(i){ if(cfg.route&&cfg.route[i-1]&&cfg.route[i-1].name) return cfg.route[i-1].name; var ov=cfg.labels&&cfg.labels[i-1]; if(ov&&String(ov).trim()) return String(ov).trim(); return CHECKPOINTS[i-1]?(lang==="ar"?CHECKPOINTS[i-1].ar:CHECKPOINTS[i-1].en):("#"+i); }
   function typeName(ty){ return t("t_"+ty); }
   function money(v){ var n=Math.round(v*100)/100; return lang==="ar"?(n+" "+t("curr")):(t("curr")+" "+n); }
 
   // ---- distance + fares ----
-  function cpOf(pos){ return CHECKPOINTS[pos-1].cp; }
-  function loopDist(a,b){ var d=Math.abs(LOOP_POS[a]-LOOP_POS[b]); return Math.min(d,LOOP_TOTAL-d); }
-  function rideDistance(posA,posB){ if(!posA||!posB||posA==="home") return null; return loopDist(cpOf(posA),cpOf(posB)); }
+  function rideDistance(posA,posB){ if(!posA||!posB||posA==="home"||posB==="home") return null; var p=routePos(); var d=Math.abs(p[posA]-p[posB]); return Math.min(d, p._total-d); }
   function tier(res){ return res<=1?0:(res===2?1:2); }
   // Private distance band: ≤T0 → 0, T0–T1 → 1, ≥T1 → 2
   function privBand(d){ if(d==null) return 2; if(d<=cfg.privT[0]) return 0; if(d<cfg.privT[1]) return 1; return 2; }
@@ -786,13 +800,20 @@
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
   function updateMap(){}  // map removed
+  function rtDesc(ty){
+    var u=lang==="ar"?"ج.م":"EGP", per=lang==="ar"?"للفرد":"each", pp=lang==="ar"?"للفرد":"per person";
+    if(ty==="private") return (lang==="ar"?"حسب المسافة · ":"By distance · ")+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+" "+pp;
+    if(ty==="mixed") return (lang==="ar"?"مشترك · ":"Shared · ")+cfg.mix[1]+" "+per+" (2), "+cfg.mix[2]+" "+per+" (3+)";
+    if(ty==="premium") return (lang==="ar"?"من المنزل · ":"Home · ")+cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u+" "+pp;
+    return t("d_"+ty);
+  }
   function renderRtypes(){
     var box=$("rtypes"); box.innerHTML="";
     var list=state.home?["premium"]:(cfg.homeEnabled!==false?RIDE_TYPES:["private","mixed"]);
     if(!state.home && state.rideType==="premium" && cfg.homeEnabled===false) state.rideType="private";
     list.forEach(function(ty){
       var b=document.createElement("button"); b.className="rt"+(state.rideType===ty?" sel":"");
-      b.innerHTML='<div class="rt-t">'+typeName(ty)+'</div><div class="rt-d">'+t("d_"+ty)+'</div>';
+      b.innerHTML='<div class="rt-t">'+typeName(ty)+'</div><div class="rt-d">'+esc(rtDesc(ty))+'</div>';
       b.addEventListener("click",function(){ state.rideType=ty; renderRtypes(); updateFare(); });
       box.appendChild(b);
     });
@@ -927,7 +948,7 @@
   function goToBooking(){ $("screen-home").classList.add("hidden"); $("screen-book").classList.remove("hidden"); if(!state.pickup&&!state.home) $("pickupPicker").classList.remove("hidden"); window.scrollTo(0,0); }
   function setHomeTexts(){
     if(!$("homeTitle")) return;
-    $("homeTitle").textContent=t("homeTitle"); $("homeSub").textContent=t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
+    $("homeTitle").textContent=(cfg.welcomeTitle&&cfg.welcomeTitle.trim())||t("homeTitle"); $("homeSub").textContent=(cfg.welcomeSub&&cfg.welcomeSub.trim())||t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
     ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT"].forEach(function(k){ $(k).textContent=t(k); });
     var cur=lang==="ar"?"ج.م":"EGP";
     var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+cur]];
@@ -989,7 +1010,9 @@
   function fillSettings(){
     $("storeNote").textContent=storageOK()?"Settings save on this device.":"⚠ This browser is blocking storage (private mode / opened from disk). Settings work for now but won't persist after closing — host the app to make them stick.";
     $("storeNote").className="mini-note"+(storageOK()?"":" warn-note");
-    $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true; $("cfgLabels").value=(cfg.labels||[]).join("\n");
+    $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true;
+    var rt=(cfg.route&&cfg.route.length)?cfg.route:CHECKPOINTS.map(function(c,i){ return {name:c.en, seg:DEFAULT_SEG[i]}; });
+    $("cfgLabels").value=rt.map(function(r){ return r.name+" | "+r.seg; }).join("\n");
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
     $("cfgP1").value=cfg.priv[0]; $("cfgP2").value=cfg.priv[1]; $("cfgP3").value=cfg.priv[2];
     $("cfgM1").value=cfg.mix[0]; $("cfgM2").value=cfg.mix[1]; $("cfgM3").value=cfg.mix[2];
@@ -997,6 +1020,7 @@
     $("cfgPayLink").value=cfg.payLink||""; $("cfgChannel").value=cfg.channel||"";
     $("cfgWebhook").value=cfg.webhook||"";
     $("cfgCost").value=cfg.cost||0; $("cfgStats").value=cfg.statsUrl||"";
+    $("cfgWelTitle").value=cfg.welcomeTitle||""; $("cfgWelSub").value=cfg.welcomeSub||"";
     $("cfgBaseUrl").value=cfg.baseUrl||"";
   }
   function numv(id,d){ var v=Number($(id).value); return isNaN(v)?d:v; }
@@ -1006,7 +1030,10 @@
     cfg.adminPin=$("cfgPin").value.trim()||"1234";
     cfg.homeEnabled=$("cfgHome").checked;
     cfg.waEnabled=$("cfgWa").checked;
-    cfg.labels=$("cfgLabels").value.split("\n").map(function(s){return s.trim();}).slice(0,N);
+    var rlines=$("cfgLabels").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s;});
+    cfg.route=rlines.map(function(line){ var p=line.split("|"); return { name:(p[0]||"").trim(), seg:(parseInt(String(p[1]||"").replace(/[^0-9]/g,""),10)||0) }; });
+    cfg.labels=[];
+    N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
     cfg.privT=[numv("cfgPt1",600),numv("cfgPt2",900)];
     cfg.priv=[numv("cfgP1",20),numv("cfgP2",25),numv("cfgP3",30)];
     cfg.mix=[numv("cfgM1",20),numv("cfgM2",20),numv("cfgM3",15)];
@@ -1015,6 +1042,7 @@
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
     cfg.webhook=$("cfgWebhook").value.trim();
     cfg.cost=Number($("cfgCost").value)||0; cfg.statsUrl=$("cfgStats").value.trim();
+    cfg.welcomeTitle=$("cfgWelTitle").value; cfg.welcomeSub=$("cfgWelSub").value;
     cfg.baseUrl=$("cfgBaseUrl").value.trim();
     saveCfg();
     if(state.driver) connectDash();
@@ -1023,7 +1051,7 @@
     renderAll();
     flash("saveSettings",t("saved"));
   }
-  function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
+  function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; cfg.route=[]; N=CHECKPOINTS.length; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
   function flash(id,txt){ var el=$(id); var old=el.textContent; el.textContent=txt; setTimeout(function(){ el.textContent=old; },1400); }
   function defaultBaseUrl(){ return location.protocol==="file:"?"":(location.origin+location.pathname); }
 
@@ -1043,7 +1071,7 @@
     if(!base){ grid.innerHTML='<div class="mini-note" style="grid-column:1/-1">Enter the app base URL above first (see the Hosting tab).</div>'; return; }
     var sep=base.indexOf("?")>=0?"&":"?";
     var html="";
-    for(var i=1;i<=N;i++){ html+=qrCard("Point "+i,CHECKPOINTS[i-1].en+" / "+CHECKPOINTS[i-1].ar,base+sep+"pickup="+i,false); }
+    for(var i=1;i<=N;i++){ html+=qrCard("Point "+i,cpName(i),base+sep+"pickup="+i,false); }
     html+=qrCard("🏠 Home pickup","Premium door-to-door / من المنزل",base+sep+"ride=home",true);
     html+=qrCard("🚗 Driver Dashboard","For the driver / للسائق — live",base+sep+"driver=1",true);
     html+=qrCard("⚙️ Admin Dashboard","Operator only / للمشغّل فقط",base+sep+"admin=1",true);
@@ -1120,7 +1148,12 @@
       renderDash();
     }
   }
-  function driverClear(id){ delete rides[id]; order=order.filter(function(x){ return x!==id; }); renderDash(); }
+  function driverDone(id){
+    var r=rides[id]; if(!r) return;
+    var note=prompt(t("notePrompt")); if(note===null) return;   // cancelled
+    webhookPost(Object.assign({},r,{ kind:"ride", event:"done", note:note }));  // records as revenue (money received)
+    delete rides[id]; order=order.filter(function(x){ return x!==id; }); renderDash();
+  }
   function renderDash(){
     var box=$("dashList");
     if(!order.length){ box.innerHTML='<div class="dash-empty">'+esc(t("noRides"))+'</div>'; return; }
@@ -1135,7 +1168,7 @@
         +'<div class="d-fare">'+esc(r.fareStr||"")+'</div></div>'
         +'<div class="d-actions"><button data-id="'+id+'">'+esc(t("b_done"))+'</button></div></div>';
     }).join("");
-    box.querySelectorAll(".d-actions button").forEach(function(b){ b.addEventListener("click",function(){ driverClear(b.getAttribute("data-id")); }); });
+    box.querySelectorAll(".d-actions button").forEach(function(b){ b.addEventListener("click",function(){ driverDone(b.getAttribute("data-id")); }); });
   }
   function beep(){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination); o.type="sine"; o.frequency.value=880; g.gain.value=.12; o.start(); setTimeout(function(){o.frequency.value=1175;},120); setTimeout(function(){o.stop();a.close();},260); }catch(e){} }
 
