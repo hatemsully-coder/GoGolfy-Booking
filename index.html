@@ -204,7 +204,10 @@
   .leaflet-container{font-family:inherit;}
   /* booking guide map */
   #bookMap{width:100%;height:240px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
+  #driverMap{width:100%;height:230px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
   .gg-pin.gg-pin-lg{width:36px;height:36px;font-size:16px;border-width:3px;}
+  .gg-pin.gg-pin-sm{width:23px;height:23px;font-size:11px;border-width:2px;background:rgba(255,255,255,.92);color:var(--green-dark);cursor:pointer;}
+  .gg-pin.car{background:#fff;border-color:var(--green);font-size:19px;}
   .gg-tip{background:rgba(255,255,255,.96);border:none!important;border-radius:9px;padding:3px 9px;font-weight:800;font-size:.74rem;box-shadow:0 2px 8px rgba(0,0,0,.35);white-space:nowrap;}
   .gg-tip.gg-tip-pk{color:var(--green-dark);} .gg-tip.gg-tip-ds{color:#c0392b;}
   .gg-tip.leaflet-tooltip-top:before{border-top-color:rgba(255,255,255,.96);}
@@ -222,6 +225,14 @@
   .rev-sub{font-size:.82rem;color:var(--muted);text-align:center;margin-bottom:14px;line-height:1.5;}
   .back-btn{width:100%;padding:14px;border:2px solid var(--green);border-radius:var(--radius);background:#fff;color:var(--green-dark);font-weight:800;font-size:1rem;cursor:pointer;margin-top:10px;}
   .back-btn:active{background:var(--green-light);}
+  /* driver location (rider view) + share button (driver view) */
+  .driver-loc{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:14px 0;box-shadow:var(--shadow);text-align:start;}
+  .dl-title{font-weight:800;color:var(--green-dark);margin-bottom:4px;}
+  .dl-note{font-size:.78rem;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px;}
+  .dl-note .pulse{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(31,154,72,.6);animation:dlp 1.4s infinite;}
+  @keyframes dlp{0%{box-shadow:0 0 0 0 rgba(31,154,72,.5)}70%{box-shadow:0 0 0 10px rgba(31,154,72,0)}100%{box-shadow:0 0 0 0 rgba(31,154,72,0)}}
+  .loc-btn{width:100%;padding:13px;border:2px solid var(--green);border-radius:14px;background:#fff;color:var(--green-dark);font-weight:800;font-size:.95rem;cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .loc-btn.on{background:var(--green);color:#fff;border-color:var(--green);animation:cbpulse 1.7s ease-in-out infinite;}
   /* admin toggle */
   .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;}
   .toggle-row .tg-label{font-weight:700;font-size:.9rem;}
@@ -415,6 +426,11 @@
         <p class="lead" id="doneLead"></p>
         <div class="receipt" id="receipt"></div>
         <div class="status-line live-wait" id="statusLine"></div>
+        <div class="driver-loc hidden" id="driverLocCard">
+          <div class="dl-title" id="dlTitle">🚗 Driver location</div>
+          <div id="driverMap"></div>
+          <div class="dl-note" id="dlNote"><span class="pulse"></span><span id="dlNoteTxt"></span></div>
+        </div>
         <div class="pay-title" id="payTitle"></div>
         <button class="pay-btn" id="payBtn"></button>
         <button class="cash-btn" id="cashBtn"></button>
@@ -503,6 +519,7 @@
         </div>
         <div class="livedot off" id="liveDot"><span class="d"></span><span id="liveTxt">…</span></div>
       </div>
+      <button class="loc-btn" id="shareLocBtn">📍 <span id="shareLocTxt">Share my live location</span></button>
       <div id="dashList"></div>
     </section>
   </main>
@@ -808,7 +825,11 @@
       st_done:"🏁 Ride completed — thank you!", st_paid:"💳 Payment opened in InstaPay",
       driverTitle:"Driver Dashboard", driverSub:"Live ride requests", noRides:"No ride requests yet — waiting…",
       live:"Live", offline:"Offline", b_accept:"Accept", b_arrive:"Arriving", b_done:"✅ Done (paid)", b_paid:"💳 Paid",
-      notePrompt:"Trip done — money received. Add a note (optional):"
+      notePrompt:"Trip done — money received. Add a note (optional):",
+      mapTapHint:"Tap a point on the map to set your destination",
+      locShare:"Share my live location", locSharing:"📍 Sharing your location — tap to stop",
+      locDenied:"Location permission denied. Please allow location to share it with riders.", locNoGeo:"Location is not available on this device.",
+      dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you."
     },
     ar:{
       tagline:"رحلتك في الداخل · امسح للركوب", compound:"دار مصر الأندلس",
@@ -849,7 +870,11 @@
       st_done:"🏁 اكتملت الرحلة — شكرًا لك!", st_paid:"💳 تم فتح الدفع في إنستاباي",
       driverTitle:"لوحة السائق", driverSub:"طلبات الرحلات المباشرة", noRides:"لا توجد طلبات بعد — في الانتظار…",
       live:"مباشر", offline:"غير متصل", b_accept:"قبول", b_arrive:"يصل", b_done:"✅ تم (مدفوع)", b_paid:"💳 مدفوع",
-      notePrompt:"تمت الرحلة — تم استلام المبلغ. أضف ملاحظة (اختياري):"
+      notePrompt:"تمت الرحلة — تم استلام المبلغ. أضف ملاحظة (اختياري):",
+      mapTapHint:"اضغط نقطة على الخريطة لتحديد وجهتك",
+      locShare:"شارك موقعي المباشر", locSharing:"📍 يتم مشاركة موقعك — اضغط للإيقاف",
+      locDenied:"تم رفض إذن الموقع. فضلاً اسمح بالموقع لمشاركته مع الركاب.", locNoGeo:"الموقع غير متاح على هذا الجهاز.",
+      dlTitle:"🚗 موقع السائق (مباشر)", dlNote:"يتم التحديث مباشرة أثناء تحرك السائق نحوك."
     }
   };
   function t(k){ return (T[lang]&&T[lang][k]!=null)?T[lang][k]:T.en[k]; }
@@ -908,6 +933,9 @@
     $("confirmTxt").textContent=t("confirm");
     $("doneTitle").textContent=t("doneTitle"); $("doneLead").textContent=t("doneLead");
     $("resendBtn").textContent=t("resend"); $("againBtn").textContent=t("again");
+    if($("dlTitle")) $("dlTitle").textContent=t("dlTitle");
+    if($("dlNoteTxt")) $("dlNoteTxt").textContent=t("dlNote");
+    setShareLocText();
   }
   function renderPickup(){
     if(state.home){
@@ -937,11 +965,12 @@
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
-  var bMap=null, bMarkers=[], bLine=null;
+  var bMap=null, bMarkers=[], bLine=null, bAllMk=[];
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
+  function bSmallIcon(txt){ return L.divIcon({className:'gg-pin gg-pin-sm', html:String(txt), iconSize:[22,22], iconAnchor:[11,11]}); }
   function updateMap(){
     var card=$("mapCard"); if(!card) return;
-    if(state.home || !state.pickup || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); return; }
+    if(state.home || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); return; }
     card.classList.remove("hidden");
     loadLeaflet(function(){
       if(!window.L) return;
@@ -949,26 +978,42 @@
         bMap=L.map('bookMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(bMap);
       }
+      bAllMk.forEach(function(m){ bMap.removeLayer(m); }); bAllMk=[];
       bMarkers.forEach(function(m){ try{m.unbindTooltip();}catch(e){} bMap.removeLayer(m); }); bMarkers=[];
       if(bLine){ bMap.removeLayer(bLine); bLine=null; }
       try{ var tp=bMap.getPane('tooltipPane'); if(tp) tp.innerHTML=''; }catch(e){}
-      var pc=ptCoord(state.pickup);
-      var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk'),zIndexOffset:1000}).addTo(bMap);
-      pm.bindTooltip("📍 "+cpName(state.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); bMarkers.push(pm);
-      if(state.destination){
-        var dc=ptCoord(state.destination);
+      // all points — small, tappable to set the destination
+      var all=[];
+      for(var i=1;i<=N;i++){(function(n){
+        var c=ptCoord(n); all.push(c);
+        if(n===state.pickup || n===state.destination) return;
+        var sm=L.marker(c,{icon:bSmallIcon(n)}).addTo(bMap);
+        sm.bindTooltip(cpName(n),{direction:'top'});
+        sm.on('click',function(){ if(n!==state.pickup){ state.destination=n; renderDest(); updateMap(); updateFare(); } });
+        bAllMk.push(sm);
+      })(i);}
+      var pc=state.pickup?ptCoord(state.pickup):null, dc=state.destination?ptCoord(state.destination):null;
+      if(pc){
+        var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk'),zIndexOffset:1000}).addTo(bMap);
+        pm.bindTooltip("📍 "+cpName(state.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); bMarkers.push(pm);
+      }
+      if(dc){
         var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds'),zIndexOffset:1000}).addTo(bMap);
         dm.bindTooltip("🎯 "+cpName(state.destination),{permanent:true,direction:'bottom',offset:[0,19],className:'gg-tip gg-tip-ds'}); bMarkers.push(dm);
+      }
+      if(pc&&dc){
         var gc=getComputedStyle(document.documentElement).getPropertyValue('--green').trim()||'#1f9a48';
         var casing=L.polyline([pc,dc],{color:'#ffffff',weight:8,opacity:.85,lineCap:'round'});
         var path=L.polyline([pc,dc],{color:gc,weight:4.5,opacity:1,dashArray:'1 12',lineCap:'round'});
         bLine=L.layerGroup([casing,path]).addTo(bMap);
         bMap.fitBounds(L.latLngBounds([pc,dc]),{paddingTopLeft:[75,48],paddingBottomRight:[75,48],maxZoom:17});
-      } else { bMap.setView(pc,17); }
+      } else { bMap.fitBounds(L.latLngBounds(all),{padding:[28,28],maxZoom:16}); }
       setTimeout(function(){ try{ bMap.invalidateSize(); }catch(e){} },160);
-      var cap=$("bookMapCap");
-      if(cap){ cap.innerHTML='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</span>'
-        +(state.destination?('<span class="lg"><span class="dot ds">'+state.destination+'</span> <b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</span>'):''); }
+      var cap=$("bookMapCap"); if(cap){ var h="";
+        if(pc) h+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</span>';
+        if(dc) h+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</span>';
+        if(!dc) h+='<span class="lg" style="color:var(--muted)">'+esc(t("mapTapHint"))+'</span>';
+        cap.innerHTML=h; }
     });
   }
   function rtDesc(ty){
@@ -1110,8 +1155,10 @@
     publish(pub);                     // live driver dashboard (ntfy — public, no phone numbers)
     webhookPost(b);                   // n8n automation (private — Google Sheet + Telegram/WhatsApp)
     if(state.payMethod==="instapay" && cfg.payLink) window.open(cfg.payLink,"_blank");
+    resetDriverLoc();
     showReceipt(b);
     setResidentStatus("onway");
+    listenStatus();                   // wait for live status + driver location on this channel
   }
   function flashBtn(el,txt){ if(!el) return; var o=el.getAttribute("data-orig")||el.textContent; el.setAttribute("data-orig",o); el.textContent=txt; clearTimeout(el._ft); el._ft=setTimeout(function(){ el.textContent=el.getAttribute("data-orig"); },2000); }
   function reportPayment(b,method){
@@ -1137,7 +1184,7 @@
     $("resendBtn").classList.toggle("hidden", !cfg.waEnabled);
     $("screen-book").classList.add("hidden"); $("screen-done").classList.remove("hidden"); window.scrollTo(0,0);
   }
-  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); window.scrollTo(0,0); }
+  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; resetDriverLoc(); if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); window.scrollTo(0,0); }
 
   // ---- admin ----
   var adminAuthedMem=false;
@@ -1357,14 +1404,61 @@
   function listenStatus(){
     if(es){ try{es.close();}catch(e){} es=null; }
     if(!cfg.channel) return;
-    try{ es=new EventSource(chanBase()+"/sse?since=5s"); }catch(e){ return; }
-    es.onmessage=function(ev){ try{ var d=JSON.parse(ev.data); if(d&&d.event==="message"&&d.message){ var m=JSON.parse(d.message); if(m&&m.kind==="status"&&m.id===bookingId&&m.status!=="paid"&&m.status!=="cash") setResidentStatus(m.status); } }catch(e){} };
+    try{ es=new EventSource(chanBase()+"/sse?since=30s"); }catch(e){ return; }
+    es.onmessage=function(ev){ try{ var d=JSON.parse(ev.data); if(d&&d.event==="message"&&d.message){ var m=JSON.parse(d.message);
+      if(m&&m.kind==="status"&&m.id===bookingId&&m.status!=="paid"&&m.status!=="cash") setResidentStatus(m.status);
+      if(m&&m.kind==="driverloc"&&m.lat!=null&&m.lng!=null) showDriverLoc(m.lat,m.lng);
+    } }catch(e){} };
   }
   function setResidentStatus(stKey){
     var el=$("statusLine"); if(!el) return;
     el.classList.remove("live-wait");
     el.innerHTML=t("st_onway");
   }
+  // ---- live driver location on the rider's screen ----
+  var dMap=null, dCar=null, dPickMk=null;
+  function showDriverLoc(lat,lng){
+    var card=$("driverLocCard"); if(!card) return;
+    card.classList.remove("hidden");
+    if($("dlTitle")) $("dlTitle").textContent=t("dlTitle");
+    if($("dlNoteTxt")) $("dlNoteTxt").textContent=t("dlNote");
+    loadLeaflet(function(){
+      if(!window.L) return;
+      if(!dMap){
+        dMap=L.map('driverMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(dMap);
+      }
+      var carPos=[lat,lng];
+      if(!dCar){ dCar=L.marker(carPos,{icon:L.divIcon({className:'gg-pin gg-pin-lg car',html:'🚗',iconSize:[36,36],iconAnchor:[18,18]}),zIndexOffset:1200}).addTo(dMap); }
+      else dCar.setLatLng(carPos);
+      var pts=[carPos];
+      if(lastBooking && lastBooking.pickup && lastBooking.pickup!=="home"){
+        var pc=ptCoord(lastBooking.pickup);
+        if(!dPickMk){ dPickMk=L.marker(pc,{icon:bPinIcon(lastBooking.pickup,'pk'),zIndexOffset:1000}).addTo(dMap);
+          dPickMk.bindTooltip("📍 "+cpName(lastBooking.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); }
+        pts.push(pc);
+      }
+      dMap.fitBounds(L.latLngBounds(pts),{padding:[55,55],maxZoom:17});
+      setTimeout(function(){ try{ dMap.invalidateSize(); }catch(e){} },160);
+    });
+  }
+  function resetDriverLoc(){
+    if(dMap){ if(dCar){ try{dMap.removeLayer(dCar);}catch(e){} dCar=null; } if(dPickMk){ try{dPickMk.unbindTooltip();dMap.removeLayer(dPickMk);}catch(e){} dPickMk=null; } }
+    var c=$("driverLocCard"); if(c) c.classList.add("hidden");
+  }
+  // ---- driver shares live location (driver dashboard) ----
+  var locWatch=null, lastLocPub=0;
+  function setShareLocText(){ var s=$("shareLocTxt"); if(s) s.textContent=(locWatch!=null)?t("locSharing"):t("locShare"); var b=$("shareLocBtn"); if(b) b.classList.toggle("on",locWatch!=null); }
+  function toggleShareLoc(){
+    if(locWatch!=null){ stopShareLoc(); return; }
+    if(!navigator.geolocation){ alert(t("locNoGeo")); return; }
+    locWatch=navigator.geolocation.watchPosition(function(p){
+      var now=Date.now(); if(now-lastLocPub<4000) return; lastLocPub=now;
+      publish({kind:"driverloc", lat:p.coords.latitude, lng:p.coords.longitude, ts:now});
+    }, function(){ stopShareLoc(); alert(t("locDenied")); }, {enableHighAccuracy:true, maximumAge:4000, timeout:20000});
+    setShareLocText();
+  }
+  function stopShareLoc(){ if(locWatch!=null){ try{navigator.geolocation.clearWatch(locWatch);}catch(e){} } locWatch=null; setShareLocText(); }
 
   // ---- driver dashboard ----
   var rides={}, order=[], dashReady=false, dashStream=null;
@@ -1372,7 +1466,7 @@
     $("screen-book").classList.add("hidden"); $("screen-done").classList.add("hidden");
     $("screen-driver").classList.remove("hidden");
     $("driverTitle").textContent=t("driverTitle"); $("driverSub").textContent=t("driverSub");
-    setLive(false); renderDash(); connectDash();
+    setLive(false); renderDash(); connectDash(); setShareLocText();
   }
   function setLive(on){ var d=$("liveDot"); if(!d) return; d.classList.toggle("off",!on); $("liveTxt").textContent=on?t("live"):t("offline"); }
   function connectDash(){
@@ -1450,6 +1544,7 @@
     $("revBack").addEventListener("click",closeReview);
     $("reviewModal").addEventListener("click",function(e){ if(e.target===$("reviewModal")) closeReview(); });
     $("againBtn").addEventListener("click",resetBooking);
+    $("shareLocBtn").addEventListener("click",toggleShareLoc);
     $("resendBtn").addEventListener("click",function(){ if(lastBooking) notifyDriver(lastBooking); });
     $("gearBtn").addEventListener("click",function(){ requireAdmin(openAdmin); });
     if(isAdminAuthed()) $("gearBtn").classList.remove("hidden");
