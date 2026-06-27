@@ -610,7 +610,7 @@
         </div>
         <div class="field">
           <label>Pick-up points & route</label>
-          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> to move it. Tap a <b>＋</b> on the line to add a road bend, then drag it onto the real road so the line follows the road (not gardens) — distances recalculate automatically along the traced path. The last point loops back to the first.</div>
+          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot on the satellite map. Lines are straight between points and distances recalculate automatically. The last point loops back to the first.</div>
           <button type="button" class="save-btn" id="addPoint" style="margin:0 0 10px;background:var(--green-dark);">➕ Add pick-up point</button>
           <div id="routeMap"></div>
           <textarea id="cfgLabels" rows="6" readonly style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.82rem;font-family:monospace;background:var(--green-light);color:var(--ink);"></textarea>
@@ -627,8 +627,11 @@
           <div class="field"><label>≥ Band 2</label><input type="number" id="cfgP3" /></div>
         </div>
 
-        <div class="sec-title">Group ride — per person (EGP) · auto-used for 3 or more residents</div>
-        <div class="field"><label>3 or more people (each)</label><input type="number" id="cfgM3" /></div>
+        <div class="sec-title">Group ride — per person (EGP) · flat to any destination · auto-used for 2+ residents</div>
+        <div class="g2">
+          <div class="field"><label>2 people (each)</label><input type="number" id="cfgM2" /></div>
+          <div class="field"><label>3 or more (each)</label><input type="number" id="cfgM3" /></div>
+        </div>
 
         <div class="sec-title">Premium / Home pickup — per person (EGP)</div>
         <div class="g3">
@@ -770,7 +773,7 @@
     phone:"201094000115", maxRes:6,
     privT:[600,900],         // Private distance thresholds (m): ≤600 / 600–900 / ≥900
     priv:[20,25,30],         // Private per person by distance band
-    mix:[20,20,20],          // Group ride (3 or more) per person
+    mix:[25,25,20],          // Group ride per person: 2 people→25, 3+→20 (flat, any destination)
     prem:[50,40,30],         // Premium per person for 1 / 2 / 3+
     baseUrl:"https://gogolfy.net/",               // your domain (used for QR codes & driver link)
     payLink:"https://ipn.eg/S/hatemsully/instapay/4T6VhV",
@@ -983,12 +986,12 @@
   var bMap=null, bMarkers=[], bLine=null, bAllMk=[], bLoop=null;
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
   function bSmallIcon(txt){ return L.divIcon({className:'gg-pin gg-pin-sm', html:String(txt), iconSize:[22,22], iconAnchor:[11,11]}); }
-  function loopCoordsAll(){ var c=[]; for(var i=1;i<=N;i++){ c.push(ptCoord(i)); viaOf(i).forEach(function(v){ c.push([v[0],v[1]]); }); } if(c.length>1) c.push(c[0]); return c; }
+  function loopCoordsAll(){ var c=[]; for(var i=1;i<=N;i++) c.push(ptCoord(i)); if(c.length>1) c.push(c[0]); return c; }
   function routeArc(pi,di){
-    var p=routePos(), fwd=((p[di]-p[pi])+p._total)%p._total, coords=[], k=pi; coords.push(ptCoord(k));
-    if(fwd<=p._total-fwd){ while(k!==di){ viaOf(k).forEach(function(v){coords.push([v[0],v[1]]);}); k=k%N+1; coords.push(ptCoord(k)); } }
-    else { while(k!==di){ var prev=(k-2+N)%N+1; viaOf(prev).slice().reverse().forEach(function(v){coords.push([v[0],v[1]]);}); k=prev; coords.push(ptCoord(k)); } }
-    return coords;
+    var p=routePos(), fwd=((p[di]-p[pi])+p._total)%p._total, arc=[], k=pi; arc.push(k);
+    if(fwd<=p._total-fwd){ while(k!==di){ k=k%N+1; arc.push(k); } }
+    else { while(k!==di){ k=(k-2+N)%N+1; arc.push(k); } }
+    return arc.map(function(i){ return ptCoord(i); });
   }
   function updateMap(){
     var card=$("mapCard"); if(!card) return;
@@ -1005,15 +1008,18 @@
       if(bLine){ bMap.removeLayer(bLine); bLine=null; }
       if(bLoop){ bMap.removeLayer(bLoop); bLoop=null; }
       try{ var tp=bMap.getPane('tooltipPane'); if(tp) tp.innerHTML=''; }catch(e){}
-      // the compound loop road (subtle — follows the traced road shape)
+      // the compound loop road (subtle — straight lines between points)
       var all=[]; for(var i=1;i<=N;i++) all.push(ptCoord(i));
       bLoop=L.polyline(loopCoordsAll(),{color:'#ffffff',weight:2,opacity:.5,dashArray:'4 7',lineJoin:'round'}).addTo(bMap);
-      // all other points — small, tappable to set the destination
+      // all other points — small, tappable: first sets pickup (if none), then destination
       for(var j=1;j<=N;j++){(function(n){
         if(n===state.pickup || n===state.destination) return;
         var sm=L.marker(ptCoord(n),{icon:bSmallIcon(n)}).addTo(bMap);
         sm.bindTooltip(cpName(n),{direction:'top'});
-        sm.on('click',function(){ if(n!==state.pickup){ state.destination=n; renderDest(); updateMap(); updateFare(); } });
+        sm.on('click',function(){
+          if(!state.pickup){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; renderAll(); }
+          else if(n!==state.pickup){ state.destination=n; renderDest(); updateMap(); updateFare(); }
+        });
         bAllMk.push(sm);
       })(j);}
       var pc=state.pickup?ptCoord(state.pickup):null, dc=state.destination?ptCoord(state.destination):null;
@@ -1042,26 +1048,29 @@
   function rtDesc(ty){
     var u=cur(), per=lang==="ar"?"للفرد":"each", pp=lang==="ar"?"للفرد":"per person";
     if(ty==="private") return (lang==="ar"?"حسب المسافة · ":"By distance · ")+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+" "+pp;
-    if(ty==="mixed") return (lang==="ar"?"مشترك · ":"Shared · ")+cfg.mix[2]+" "+per+" ("+(lang==="ar"?"3 أو أكثر":"3+")+")";
+    if(ty==="mixed") return (lang==="ar"?"مشترك · ":"Shared · ")+cfg.mix[1]+" "+per+" (2), "+cfg.mix[2]+" "+per+" (3+)";
     if(ty==="premium") return (lang==="ar"?"من المنزل · ":"Home · ")+cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u+" "+pp;
     return t("d_"+ty);
   }
   function autoType(){
     if(state.home){ state.rideType="premium"; return; }
     if(state.rideType==="premium" && cfg.homeEnabled!==false) return; // keep manual Premium choice
-    state.rideType = state.residents>2 ? "mixed" : "private";  // auto: 1–2 = Single, 3+ = Group
+    state.rideType = state.residents>1 ? "mixed" : "private";  // auto: 1 = Single, 2+ = Group
   }
   function renderFareGuide(){
     var el=$("fareGuide"); if(!el) return;
     var u=cur(), each=lang==="ar"?"للفرد":"each", byd=lang==="ar"?"حسب المسافة":"by distance";
     var ar=(lang==="ar");
     var title=ar?"💡 الأسعار (لكل راكب)":"💡 Fares (per person)";
-    var rSingle=ar?"رحلة فردية · 1–2 ركاب":"Single ride · 1–2 people";
-    var rGroup=ar?"رحلة جماعية · 3 ركاب أو أكثر":"Group ride · 3 or more";
+    var anyd=ar?"لأي وجهة":"any destination";
+    var rSingle=ar?"رحلة فردية · راكب واحد":"Single ride · 1 person";
+    var rG2=ar?"رحلة جماعية · راكبان":"Group ride · 2 people";
+    var rG3=ar?"رحلة جماعية · 3 أو أكثر":"Group ride · 3 or more";
     function row(on,icon,k,v){ return '<div class="fg-row'+(on?" on":"")+'"><span class="fg-k">'+icon+' '+k+'</span><span class="fg-v">'+v+'</span></div>'; }
     var html='<div class="fg-title">'+title+'</div>'
-      +row(state.residents<=2,"👤",rSingle,"<b>"+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+"</b> "+byd)
-      +row(state.residents>=3,"👥",rGroup,"<b>"+cfg.mix[2]+" "+u+"</b> "+each);
+      +row(state.residents<=1,"👤",rSingle,"<b>"+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+"</b> "+byd)
+      +row(state.residents===2,"👥",rG2,"<b>"+cfg.mix[1]+" "+u+"</b> "+each+" · "+anyd)
+      +row(state.residents>=3,"👥",rG3,"<b>"+cfg.mix[2]+" "+u+"</b> "+each+" · "+anyd);
     el.innerHTML=html;
   }
   function renderRtypes(){
@@ -1069,7 +1078,7 @@
     var box=$("rtypes"); box.innerHTML="";
     var list;
     if(state.home){ list=["premium"]; }
-    else { list = state.residents>2 ? ["mixed"] : ["private"]; if(cfg.homeEnabled!==false) list.push("premium"); }
+    else { list = state.residents>1 ? ["mixed"] : ["private"]; if(cfg.homeEnabled!==false) list.push("premium"); }
     if(list.indexOf(state.rideType)<0) state.rideType=list[0];
     list.forEach(function(ty){
       var b=document.createElement("button"); b.className="rt"+(state.rideType===ty?" sel":"");
@@ -1237,7 +1246,7 @@
     ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT","homeStepsT","chip1","chip2","chip3","chip4"].forEach(function(k){ $(k).textContent=t(k); });
     var u=cur();
     var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u]];
-    rows.push([typeName("mixed"), cfg.mix[2]+" "+u+" ("+(lang==="ar"?"3+":"3+")+")"]);
+    rows.push([typeName("mixed"), cfg.mix[1]+"/"+cfg.mix[2]+" "+u]);
     if(cfg.homeEnabled!==false) rows.push([typeName("premium"), cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u]);
     $("homeFares").innerHTML=rows.map(function(r){ return '<div class="fare-row"><span>'+esc(r[0])+'</span><span class="muted">'+esc(r[1])+'</span></div>'; }).join("");
     var wa=$("homeWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("homeWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
@@ -1303,14 +1312,11 @@
   }
   function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
   function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
-  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
-  function reSegPath(idx){ var n=routeEdit.length, a=routeEdit[idx], b=routeEdit[(idx+1)%n]; var pts=[[a.lat,a.lng]]; (a.via||[]).forEach(function(p){pts.push(p);}); pts.push([b.lat,b.lng]); return pts; }
-  function pathLen(pts){ var d=0; for(var k=1;k<pts.length;k++) d+=haversine(pts[k-1],pts[k]); return d; }
-  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ var hasVia=(routeEdit[i].via&&routeEdit[i].via.length); var d=pathLen(reSegPath(i))*(hasVia?1:1.25); routeEdit[i].seg=Math.round(d/5)*5; } }
+  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i) }); } }
+  function recalcSegs(){ var n=routeEdit.length; for(var i=0;i<n;i++){ var a=routeEdit[i], b=routeEdit[(i+1)%n]; routeEdit[i].seg=Math.round(haversine([a.lat,a.lng],[b.lat,b.lng])*1.25/5)*5; } }
   function routeEditToText(){ return routeEdit.map(function(r,i){ return (i+1)+". "+r.name+" — "+r.seg+" m"; }).join("\n"); }
-  function reLoopCoords(){ var c=[]; for(var i=0;i<routeEdit.length;i++){ c.push([routeEdit[i].lat,routeEdit[i].lng]); (routeEdit[i].via||[]).forEach(function(p){c.push(p);}); } if(c.length>1) c.push(c[0]); return c; }
+  function reLoopCoords(){ var c=routeEdit.map(function(r){ return [r.lat,r.lng]; }); if(c.length>1) c.push(c[0]); return c; }
   function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } rLine=L.polyline(reLoopCoords(),{color:'#1f9a48',weight:4,opacity:.95,lineJoin:'round'}).addTo(rMap); }
-  function routeVertices(){ var V=[]; for(var i=0;i<routeEdit.length;i++){ V.push({ll:[routeEdit[i].lat,routeEdit[i].lng],kind:'pt',i:i}); (routeEdit[i].via||[]).forEach(function(p,vi){ V.push({ll:p,kind:'via',i:i,vi:vi}); }); } return V; }
   function clearRouteMarkers(){ [rMarkers,rViaMk,rAddMk].forEach(function(arr){ arr.forEach(function(m){ try{rMap.removeLayer(m);}catch(e){} }); }); rMarkers=[]; rViaMk=[]; rAddMk=[]; }
   function refreshRoute(){ recalcSegs(); $("cfgLabels").value=routeEditToText(); drawRouteLine(); renderRouteMarkers(); }
   function renderRouteMarkers(){
@@ -1323,25 +1329,6 @@
       m.bindTooltip((idx+1)+" · "+r.name,{direction:'top'});
       rMarkers.push(m);
     });
-    var V=routeVertices(), len=V.length;
-    for(var k=0;k<len;k++){
-      var cur=V[k], nxt=V[(k+1)%len];
-      if(cur.kind==='via'){ (function(seg,vi){
-        var vm=L.marker(cur.ll,{draggable:true,zIndexOffset:600,icon:L.divIcon({className:'',html:'<div class="gg-bend"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(rMap);
-        vm.on('drag',function(){ var ll=vm.getLatLng(); routeEdit[seg].via[vi]=[ll.lat,ll.lng]; drawRouteLine(); });
-        vm.on('dragend',function(){ refreshRoute(); });
-        vm.on('click',function(){ routeEdit[seg].via.splice(vi,1); refreshRoute(); });
-        vm.bindTooltip("Bend — drag onto the road · tap to remove",{direction:'top'});
-        rViaMk.push(vm);
-      })(cur.i,cur.vi); }
-      (function(seg,ins,a,b){
-        var mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
-        var am=L.marker(mid,{zIndexOffset:300,icon:L.divIcon({className:'',html:'<div class="gg-add">+</div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(rMap);
-        am.on('click',function(){ routeEdit[seg].via=routeEdit[seg].via||[]; routeEdit[seg].via.splice(ins,0,mid); refreshRoute(); });
-        am.bindTooltip("Add a road bend here",{direction:'top'});
-        rAddMk.push(am);
-      })(cur.i,(cur.kind==='pt'?0:cur.vi+1),cur.ll,nxt.ll);
-    }
   }
   function openPointPopup(idx,m){
     var r=routeEdit[idx];
@@ -1381,7 +1368,7 @@
     $("cfgLabels").value=rt.map(function(r){ return r.name+" | "+r.seg; }).join("\n");
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
     $("cfgP1").value=cfg.priv[0]; $("cfgP2").value=cfg.priv[1]; $("cfgP3").value=cfg.priv[2];
-    $("cfgM3").value=cfg.mix[2];
+    $("cfgM2").value=cfg.mix[1]; $("cfgM3").value=cfg.mix[2];
     $("cfgPr1").value=cfg.prem[0]; $("cfgPr2").value=cfg.prem[1]; $("cfgPr3").value=cfg.prem[2];
     $("cfgPayLink").value=cfg.payLink||""; $("cfgChannel").value=cfg.channel||"";
     $("cfgWebhook").value=cfg.webhook||"";
@@ -1399,13 +1386,13 @@
     cfg.waEnabled=$("cfgWa").checked;
     if(routeEdit&&routeEdit.length){
       recalcSegs();
-      cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); return o; });
+      cfg.route=routeEdit.map(function(r){ return { name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; });
     }
     cfg.labels=[];
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
     cfg.privT=[numv("cfgPt1",600),numv("cfgPt2",900)];
     cfg.priv=[numv("cfgP1",20),numv("cfgP2",25),numv("cfgP3",30)];
-    var m3=numv("cfgM3",20); cfg.mix=[m3,m3,m3];
+    var m2=numv("cfgM2",25); cfg.mix=[m2,m2,numv("cfgM3",20)];
     cfg.prem=[numv("cfgPr1",50),numv("cfgPr2",40),numv("cfgPr3",30)];
     cfg.payLink=$("cfgPayLink").value.trim();
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
