@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<meta name="theme-color" content="#0b7a3b" />
+<meta name="theme-color" content="#1f9a48" />
 <title>GoGolfy — Scan to Ride</title>
 <style>
   :root{
-    --green:#0b7a3b; --green-dark:#075c2c; --green-light:#e9f7ef;
+    --green:#1f9a48; --green-dark:#0e6e37; --green-light:#e8f7ee; --brand:#2ea24e;
     --accent:#ffd23f; --ink:#15241c; --muted:#6b7c73; --line:#e2eae5;
     --bg:#f4f8f5; --white:#ffffff; --danger:#c0392b;
     --band1:#2e9e5b; --band2:#e0a106; --band3:#d8662a;
@@ -20,7 +20,7 @@
     background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
 
-  header{background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;padding:16px 18px 22px;
+  header{background:linear-gradient(135deg,var(--brand),var(--green-dark));color:#fff;padding:16px 18px 22px;
     position:relative;border-bottom-left-radius:24px;border-bottom-right-radius:24px;box-shadow:var(--shadow);}
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.4rem;letter-spacing:.3px;justify-content:center;}
   .brand .cart{font-size:1.7rem;}
@@ -103,7 +103,7 @@
 
   .modal-overlay{position:fixed;inset:0;background:rgba(13,30,21,.55);display:flex;align-items:flex-start;justify-content:center;padding:18px;z-index:50;overflow:auto;}
   .modal{background:#fff;border-radius:20px;max-width:600px;width:100%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);}
-  .modal-head{background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .modal-head{background:linear-gradient(135deg,var(--brand),var(--green-dark));color:#fff;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;}
   .modal-head .mh-brand{display:flex;align-items:center;gap:10px;}
   .modal-head .mh-logo{width:30px;height:auto;flex:0 0 auto;}
   .modal-head h3{margin:0;font-size:1.1rem;}
@@ -162,7 +162,7 @@
 
   /* driver dashboard */
   .dash-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;
-    background:linear-gradient(135deg,var(--green),var(--green-dark));color:#fff;border-radius:18px;padding:15px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+    background:linear-gradient(135deg,var(--brand),var(--green-dark));color:#fff;border-radius:18px;padding:15px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
   .dash-head:after{content:"";position:absolute;bottom:-40px;inset-inline-end:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);}
   .dash-head .dh-logo{width:38px;height:auto;flex:0 0 auto;position:relative;}
   .dash-head .dh-text{flex:1;position:relative;}
@@ -202,6 +202,21 @@
   .gg-pin.pk{background:var(--green);color:#fff;border-color:var(--green);}
   .gg-pin.ds{background:var(--accent);border-color:#e0a106;color:#15241c;}
   .leaflet-container{font-family:inherit;}
+  /* booking guide map */
+  #bookMap{width:100%;height:190px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
+  .map-cap{font-size:.76rem;color:var(--muted);margin-top:9px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;}
+  .map-cap .lg{display:inline-flex;align-items:center;gap:6px;}
+  .map-cap .dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .map-cap .dot.pk{background:var(--green);} .map-cap .dot.ds{background:var(--accent);}
+  .map-cap b{color:var(--green-dark);font-weight:700;}
+  /* review — modify before submit */
+  .rev-overlay{position:fixed;inset:0;background:rgba(15,36,28,.55);display:flex;align-items:flex-end;justify-content:center;z-index:1200;}
+  .rev-card{background:var(--bg);width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px 24px;max-height:92vh;overflow:auto;box-shadow:0 -10px 40px rgba(0,0,0,.3);animation:revUp .25s ease;}
+  @keyframes revUp{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}
+  .rev-head{font-size:1.25rem;font-weight:800;color:var(--green-dark);text-align:center;margin:2px 0 4px;}
+  .rev-sub{font-size:.82rem;color:var(--muted);text-align:center;margin-bottom:14px;line-height:1.5;}
+  .back-btn{width:100%;padding:14px;border:2px solid var(--green);border-radius:var(--radius);background:#fff;color:var(--green-dark);font-weight:800;font-size:1rem;cursor:pointer;margin-top:10px;}
+  .back-btn:active{background:var(--green-light);}
   /* admin toggle */
   .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;}
   .toggle-row .tg-label{font-weight:700;font-size:.9rem;}
@@ -214,8 +229,8 @@
   textarea#autoReply{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-family:inherit;background:#fff;color:var(--ink);resize:vertical;}
 
   /* landing logo */
-  .home-logo{text-align:center;margin:4px 0 6px;}
-  .home-logo img{max-width:240px;width:74%;height:auto;}
+  .home-logo{text-align:center;margin:4px 0 10px;}
+  .home-logo img{max-width:230px;width:72%;height:auto;background:#fff;border-radius:20px;padding:14px 16px;box-shadow:0 8px 26px rgba(31,154,72,.14);}
   .hl-word{font-weight:800;font-size:1.9rem;color:var(--green-dark);letter-spacing:.3px;line-height:1;}
   .hl-tag{font-size:.66rem;letter-spacing:2px;color:var(--muted);font-weight:700;margin-top:2px;}
   /* admin route map */
@@ -232,7 +247,7 @@
   .hero-badge{position:relative;display:inline-block;background:var(--green);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.5px;padding:6px 14px;border-radius:20px;margin:8px 0 6px;box-shadow:var(--shadow);}
   .home .hero h1{position:relative;font-size:2rem;color:var(--green-dark);margin:6px 0 6px;font-weight:800;line-height:1.15;}
   .home .hero p{position:relative;color:var(--muted);margin:0 auto 18px;max-width:330px;font-size:1.02rem;line-height:1.5;}
-  .home .cta{position:relative;width:100%;background:linear-gradient(135deg,var(--green),var(--green-dark));font-size:1.15rem;padding:17px;box-shadow:0 10px 24px rgba(11,122,59,.28);}
+  .home .cta{position:relative;width:100%;background:linear-gradient(135deg,var(--brand),var(--green-dark));font-size:1.15rem;padding:17px;box-shadow:0 10px 24px rgba(11,122,59,.28);}
   .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;position:relative;}
   .chip{background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 12px;font-size:.76rem;font-weight:700;color:var(--green-dark);box-shadow:0 1px 5px rgba(0,0,0,.05);}
   .home-sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.8px;color:var(--green-dark);font-weight:800;margin:22px 4px 8px;text-align:center;}
@@ -273,6 +288,12 @@
   .launch .lbtn:active{filter:brightness(.95);}
   .launch .ldots{margin-top:16px;color:var(--accent);font-size:1.5rem;letter-spacing:4px;}
 
+  .confirm-btn.ready{animation:cbpulse 1.7s ease-in-out infinite;}
+  @keyframes cbpulse{0%,100%{box-shadow:0 6px 22px rgba(11,122,59,.30);transform:translateY(0)}50%{box-shadow:0 10px 34px rgba(11,122,59,.6);transform:translateY(-1px)}}
+  .hint.ready{color:var(--green-dark);font-weight:800;font-size:.86rem;}
+  .fare-guide{font-size:.76rem;color:var(--green-dark);margin-top:10px;line-height:1.6;background:var(--green-light);border-radius:10px;padding:9px 11px;font-weight:600;}
+  .fare-guide b{color:var(--green-dark);}
+
   @media print{
     body{background:#fff;}
     .wrap>header,main>*:not(#screen-admin),footer,.modal-head,.tabs,.no-print{display:none!important;}
@@ -302,8 +323,8 @@
           <rect x="32" y="46" width="24" height="7" rx="3"/>
           <rect x="66" y="46" width="34" height="7" rx="3"/>
         </g>
-        <circle cx="46" cy="74" r="13" fill="#ffffff"/><circle cx="46" cy="74" r="5.5" fill="#0b7a3b"/>
-        <circle cx="106" cy="74" r="13" fill="#ffffff"/><circle cx="106" cy="74" r="5.5" fill="#0b7a3b"/>
+        <circle cx="46" cy="74" r="13" fill="#ffffff"/><circle cx="46" cy="74" r="5.5" fill="#1f9a48"/>
+        <circle cx="106" cy="74" r="13" fill="#ffffff"/><circle cx="106" cy="74" r="5.5" fill="#1f9a48"/>
       </svg>
       <span class="brand-text">GoGolfy</span>
     </div>
@@ -331,9 +352,16 @@
         <div class="grid" id="destGrid"></div>
       </div>
 
+      <div class="card hidden" id="mapCard">
+        <div class="label" id="lblGuideMap">🗺️ Guide map</div>
+        <div id="bookMap"></div>
+        <div class="map-cap" id="bookMapCap"></div>
+      </div>
+
       <div class="card" id="rtCard">
         <div class="label" id="lblRtype">🚗 Ride type</div>
         <div class="rtypes" id="rtypes"></div>
+        <div class="fare-guide" id="fareGuide"></div>
       </div>
 
       <div class="card">
@@ -390,12 +418,12 @@
             <img id="homeLogoImg" alt="GoGolfy" />
             <div id="homeLogoFallback">
               <svg viewBox="0 0 150 100" width="110" height="73" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block;margin:0 auto">
-                <g fill="none" stroke="#0b7a3b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                <g fill="none" stroke="#1f9a48" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M24 22 H116"/><path d="M32 22 V42"/><path d="M108 22 V36"/><path d="M108 36 L124 60"/><path d="M24 42 V60 H124"/><path d="M60 42 V58"/>
                 </g>
-                <g fill="#0b7a3b"><rect x="32" y="46" width="24" height="7" rx="3"/><rect x="66" y="46" width="34" height="7" rx="3"/></g>
-                <circle cx="46" cy="74" r="13" fill="#0b7a3b"/><circle cx="46" cy="74" r="5.5" fill="#fff"/>
-                <circle cx="106" cy="74" r="13" fill="#0b7a3b"/><circle cx="106" cy="74" r="5.5" fill="#fff"/>
+                <g fill="#1f9a48"><rect x="32" y="46" width="24" height="7" rx="3"/><rect x="66" y="46" width="34" height="7" rx="3"/></g>
+                <circle cx="46" cy="74" r="13" fill="#1f9a48"/><circle cx="46" cy="74" r="5.5" fill="#fff"/>
+                <circle cx="106" cy="74" r="13" fill="#1f9a48"/><circle cx="106" cy="74" r="5.5" fill="#fff"/>
               </svg>
               <div class="hl-word">GoGolfy</div>
               <div class="hl-tag">YOUR RIDE INSIDE.</div>
@@ -429,15 +457,15 @@
     <section id="screen-launch" class="hidden">
       <div class="launch">
         <svg class="llogo" viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <g fill="#0b7a3b">
+          <g fill="#1f9a48">
             <rect x="18" y="14" width="86" height="9" rx="4.5"/>
             <path d="M104 14 h10 a4 4 0 0 1 4 4 v5 h-14 z"/>
             <rect x="24" y="21" width="6" height="22" rx="3"/>
             <rect x="98" y="21" width="6" height="22" rx="3"/>
             <path d="M14 56 v-9 a5 5 0 0 1 5 -5 h66 a5 5 0 0 1 3.5 1.5 l11 11 h17 a4 4 0 0 1 4 4 h-18 a12 12 0 0 0 -24 0 h-24 a12 12 0 0 0 -24 0 h-3 a5 5 0 0 1 -5 -3.5 z"/>
           </g>
-          <circle cx="45" cy="64" r="11" fill="#0b7a3b"/><circle cx="45" cy="64" r="5" fill="#fff"/>
-          <circle cx="93" cy="64" r="11" fill="#0b7a3b"/><circle cx="93" cy="64" r="5" fill="#fff"/>
+          <circle cx="45" cy="64" r="11" fill="#1f9a48"/><circle cx="45" cy="64" r="5" fill="#fff"/>
+          <circle cx="93" cy="64" r="11" fill="#1f9a48"/><circle cx="93" cy="64" r="5" fill="#fff"/>
         </svg>
         <h1 id="launchTitle">Launching Soon</h1>
         <div class="lsub" id="launchSub"></div>
@@ -454,8 +482,8 @@
             <path d="M24 22 H116"/><path d="M32 22 V42"/><path d="M108 22 V36"/><path d="M108 36 L124 60"/><path d="M24 42 V60 H124"/><path d="M60 42 V58"/>
           </g>
           <g fill="#fff"><rect x="32" y="46" width="24" height="7" rx="3"/><rect x="66" y="46" width="34" height="7" rx="3"/></g>
-          <circle cx="46" cy="74" r="13" fill="#fff"/><circle cx="46" cy="74" r="5.5" fill="#0b7a3b"/>
-          <circle cx="106" cy="74" r="13" fill="#fff"/><circle cx="106" cy="74" r="5.5" fill="#0b7a3b"/>
+          <circle cx="46" cy="74" r="13" fill="#fff"/><circle cx="46" cy="74" r="5.5" fill="#1f9a48"/>
+          <circle cx="106" cy="74" r="13" fill="#fff"/><circle cx="106" cy="74" r="5.5" fill="#1f9a48"/>
         </svg>
         <div class="dh-text">
           <div class="dh-t" id="driverTitle">Driver Dashboard</div>
@@ -470,6 +498,20 @@
   <footer>GoGolfy · Dar Masr Al Andalous · Scan to Ride</footer>
 </div>
 
+<div class="rev-overlay hidden" id="reviewModal">
+  <div class="rev-card">
+    <div class="rev-head" id="revTitle">Review your ride</div>
+    <div class="rev-sub" id="revSub"></div>
+    <div class="receipt" id="revBody"></div>
+    <div class="fare-card" style="margin-top:14px;">
+      <div><div class="lbl" id="revFareLbl">Fare</div><div class="brk" id="revFareBreak"></div></div>
+      <div class="amt" id="revFareAmt">—</div>
+    </div>
+    <button class="confirm-btn ready" id="revConfirm">✅ <span id="revConfirmTxt">Confirm &amp; send to driver</span></button>
+    <button class="back-btn" id="revBack">← Back / Edit</button>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="adminOverlay">
   <div class="modal">
     <div class="modal-head">
@@ -479,8 +521,8 @@
             <path d="M24 22 H116"/><path d="M32 22 V42"/><path d="M108 22 V36"/><path d="M108 36 L124 60"/><path d="M24 42 V60 H124"/><path d="M60 42 V58"/>
           </g>
           <g fill="#fff"><rect x="32" y="46" width="24" height="7" rx="3"/><rect x="66" y="46" width="34" height="7" rx="3"/></g>
-          <circle cx="46" cy="74" r="13" fill="#fff"/><circle cx="46" cy="74" r="5.5" fill="#0b7a3b"/>
-          <circle cx="106" cy="74" r="13" fill="#fff"/><circle cx="106" cy="74" r="5.5" fill="#0b7a3b"/>
+          <circle cx="46" cy="74" r="13" fill="#fff"/><circle cx="46" cy="74" r="5.5" fill="#1f9a48"/>
+          <circle cx="106" cy="74" r="13" fill="#fff"/><circle cx="106" cy="74" r="5.5" fill="#1f9a48"/>
         </svg>
         <h3>GoGolfy Admin</h3>
       </div>
@@ -543,11 +585,10 @@
           <div class="field"><label>≥ Band 2</label><input type="number" id="cfgP3" /></div>
         </div>
 
-        <div class="sec-title">Mixed / Shared — per person (EGP)</div>
-        <div class="g3">
-          <div class="field"><label>1 person</label><input type="number" id="cfgM1" /></div>
-          <div class="field"><label>2 people</label><input type="number" id="cfgM2" /></div>
-          <div class="field"><label>3+ each</label><input type="number" id="cfgM3" /></div>
+        <div class="sec-title">Shared ride — per person (EGP) · auto-used for 2+ residents</div>
+        <div class="g2">
+          <div class="field"><label>2 people (each)</label><input type="number" id="cfgM2" /></div>
+          <div class="field"><label>3+ people (each)</label><input type="number" id="cfgM3" /></div>
         </div>
 
         <div class="sec-title">Premium / Home pickup — per person (EGP)</div>
@@ -725,14 +766,17 @@
       detecting:"Detecting…", selectPickup:"Select your pickup point", change:"Change pickup",
       detected:"Detected from the QR code at this pick-up point", noqr:"No QR detected — choose where you are",
       home:"Home pickup", homeSub:"Premium door-to-door pickup",
-      confirm:"Confirm & Request Ride", hintPick:"Pick a destination to continue",
-      hintScan:"Scan a pick-up point QR or choose pickup", hintGo:"Tap confirm to alert the driver",
+      confirm:"Book my ride now", hintPick:"Pick a destination to continue",
+      hintScan:"Scan a pick-up point QR or choose pickup", hintGo:"👇 Tap the green button to book — your driver will be alerted",
       selDest:"Select a destination", setBoth:"Set pickup & destination",
+      lblGuideMap:"🗺️ Guide map", mapPickWait:"Your pick-up — wait here", mapDestLeg:"Destination",
+      revTitle:"Review your ride", revNote:"Check the details below, then confirm. Tap Back to change anything.",
+      revConfirm:"Confirm & send to driver", revBack:"← Back / Edit",
       doneTitle:"Ride Requested!", doneLead:"A driver has been notified. Please wait at your pickup point.",
       rPickup:"Pickup", rDest:"Destination", rRes:"Residents", rType:"Ride type", rDist:"Ride distance", rTotal:"Total fare",
       resend:"📲 Notify driver again", again:"Book another ride", langBtn:"عربي",
-      t_private:"Private", d_private:"By distance · per person",
-      t_mixed:"Mixed", d_mixed:"Shared, per person",
+      t_private:"Single ride", d_private:"Just your group · by distance",
+      t_mixed:"Group ride", d_mixed:"Shared with others · per person",
       t_premium:"Premium", d_premium:"Home / door-to-door",
       each:"each", flat:"flat", saved:"✓ Saved", curr:"EGP",
       msgTitle:"GoGolfy Ride Request", msgWaiting:"A resident is waiting. Please proceed to pickup.",
@@ -763,14 +807,17 @@
       detecting:"جارٍ التحديد…", selectPickup:"اختر نقطة انطلاقك", change:"تغيير نقطة الانطلاق",
       detected:"تم تحديدها من رمز QR في هذه النقطة", noqr:"لم يُكتشف رمز — اختر مكانك",
       home:"الاستلام من المنزل", homeSub:"خدمة بريميوم من الباب للباب",
-      confirm:"تأكيد وطلب الرحلة", hintPick:"اختر وجهة للمتابعة",
-      hintScan:"امسح رمز نقطة أو اختر الانطلاق", hintGo:"اضغط تأكيد لإخطار السائق",
+      confirm:"احجز رحلتي الآن", hintPick:"اختر وجهة للمتابعة",
+      hintScan:"امسح رمز نقطة أو اختر الانطلاق", hintGo:"👇 اضغط الزر الأخضر للحجز — سيصل الإخطار للسائق",
       selDest:"اختر وجهة", setBoth:"حدد الانطلاق والوجهة",
+      lblGuideMap:"🗺️ خريطة إرشادية", mapPickWait:"نقطة انطلاقك — انتظر هنا", mapDestLeg:"الوجهة",
+      revTitle:"راجع رحلتك", revNote:"راجع التفاصيل بالأسفل ثم أكّد. اضغط رجوع لتعديل أي شيء.",
+      revConfirm:"تأكيد وإرسال للسائق", revBack:"← رجوع / تعديل",
       doneTitle:"تم طلب الرحلة!", doneLead:"تم إخطار السائق. الرجاء الانتظار في نقطة انطلاقك.",
       rPickup:"الانطلاق", rDest:"الوجهة", rRes:"الركاب", rType:"نوع الرحلة", rDist:"مسافة الرحلة", rTotal:"إجمالي الأجرة",
       resend:"📲 إخطار السائق مرة أخرى", again:"حجز رحلة أخرى", langBtn:"EN",
-      t_private:"خاص", d_private:"حسب المسافة · للفرد",
-      t_mixed:"مشترك", d_mixed:"مشترك، للفرد",
+      t_private:"رحلة فردية", d_private:"لمجموعتك فقط · حسب المسافة",
+      t_mixed:"رحلة جماعية", d_mixed:"مشتركة مع آخرين · للفرد",
       t_premium:"بريميوم", d_premium:"من المنزل / من الباب للباب",
       each:"للفرد", flat:"ثابت", saved:"✓ تم الحفظ", curr:"ج.م",
       msgTitle:"طلب رحلة GoGolfy", msgWaiting:"أحد السكان في الانتظار. الرجاء التوجه لنقطة الانطلاق.",
@@ -841,6 +888,7 @@
     $("langBtn").textContent=t("langBtn");
     $("lblPickup").textContent=t("lblPickup"); $("lblDest").textContent=t("lblDest");
     $("lblRtype").textContent=t("lblRtype"); $("lblResidents").textContent=t("lblResidents");
+    if($("lblGuideMap")) $("lblGuideMap").textContent=t("lblGuideMap");
     $("lblFare").textContent=t("lblFare"); $("resUnit").textContent=t("resUnit"); $("lblPhone").textContent=t("lblPhone");
     $("lblPay").textContent=t("lblPay");
     setLaunchTexts(); setHomeTexts();
@@ -877,7 +925,37 @@
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
-  function updateMap(){}  // map removed
+  var bMap=null, bMarkers=[], bLine=null;
+  function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin '+kind, html:String(txt), iconSize:[28,28], iconAnchor:[14,14]}); }
+  function updateMap(){
+    var card=$("mapCard"); if(!card) return;
+    if(state.home || !state.pickup || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); return; }
+    card.classList.remove("hidden");
+    loadLeaflet(function(){
+      if(!window.L) return;
+      if(!bMap){
+        bMap=L.map('bookMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(bMap);
+      }
+      bMarkers.forEach(function(m){ bMap.removeLayer(m); }); bMarkers=[];
+      if(bLine){ bMap.removeLayer(bLine); bLine=null; }
+      var pc=ptCoord(state.pickup);
+      var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk')}).addTo(bMap);
+      pm.bindTooltip(cpName(state.pickup)+" — "+t("mapPickWait"),{direction:'top'}); bMarkers.push(pm);
+      if(state.destination){
+        var dc=ptCoord(state.destination);
+        var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds')}).addTo(bMap);
+        dm.bindTooltip(cpName(state.destination),{direction:'top'}); bMarkers.push(dm);
+        var gc=getComputedStyle(document.documentElement).getPropertyValue('--green').trim()||'#1f9a48';
+        bLine=L.polyline([pc,dc],{color:gc,weight:4,opacity:.9,dashArray:'2 9',lineCap:'round'}).addTo(bMap);
+        bMap.fitBounds(L.latLngBounds([pc,dc]),{padding:[42,42],maxZoom:17});
+      } else { bMap.setView(pc,16); }
+      setTimeout(function(){ try{ bMap.invalidateSize(); }catch(e){} },160);
+      var cap=$("bookMapCap");
+      if(cap){ cap.innerHTML='<span class="lg"><span class="dot pk"></span><b>#'+state.pickup+'</b> '+esc(t("mapPickWait"))+'</span>'
+        +(state.destination?('<span class="lg"><span class="dot ds"></span><b>#'+state.destination+'</b> '+esc(t("mapDestLeg"))+'</span>'):''); }
+    });
+  }
   function rtDesc(ty){
     var u=cur(), per=lang==="ar"?"للفرد":"each", pp=lang==="ar"?"للفرد":"per person";
     if(ty==="private") return (lang==="ar"?"حسب المسافة · ":"By distance · ")+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+" "+pp;
@@ -885,16 +963,32 @@
     if(ty==="premium") return (lang==="ar"?"من المنزل · ":"Home · ")+cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u+" "+pp;
     return t("d_"+ty);
   }
+  function autoType(){
+    if(state.home){ state.rideType="premium"; return; }
+    if(state.rideType==="premium" && cfg.homeEnabled!==false) return; // keep manual Premium choice
+    state.rideType = state.residents>1 ? "mixed" : "private";  // auto: 1 person = Private, 2+ = Shared
+  }
+  function renderFareGuide(){
+    var el=$("fareGuide"); if(!el) return;
+    var u=cur(), each=lang==="ar"?"للفرد":"each", byd=lang==="ar"?"حسب المسافة":"by distance";
+    var one=(lang==="ar"?"👤 رحلة فردية (راكب واحد)":"👤 Single ride (1 person)")+": <b>"+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+"</b> "+byd;
+    var shared=(lang==="ar"?"👥 رحلة جماعية (2+)":"👥 Group ride (2+)")+": <b>"+cfg.mix[1]+" "+u+"</b> "+each+" (2), <b>"+cfg.mix[2]+" "+u+"</b> "+each+" (3+)";
+    el.innerHTML=one+"<br>"+shared;
+  }
   function renderRtypes(){
+    autoType();
     var box=$("rtypes"); box.innerHTML="";
-    var list=state.home?["premium"]:(cfg.homeEnabled!==false?RIDE_TYPES:["private","mixed"]);
-    if(!state.home && state.rideType==="premium" && cfg.homeEnabled===false) state.rideType="private";
+    var list;
+    if(state.home){ list=["premium"]; }
+    else { list = state.residents>1 ? ["mixed"] : ["private"]; if(cfg.homeEnabled!==false) list.push("premium"); }
+    if(list.indexOf(state.rideType)<0) state.rideType=list[0];
     list.forEach(function(ty){
       var b=document.createElement("button"); b.className="rt"+(state.rideType===ty?" sel":"");
       b.innerHTML='<div class="rt-t">'+typeName(ty)+'</div><div class="rt-d">'+esc(rtDesc(ty))+'</div>';
       b.addEventListener("click",function(){ state.rideType=ty; renderRtypes(); updateFare(); });
       box.appendChild(b);
     });
+    renderFareGuide();
     $("rtCard").classList.toggle("hidden", state.home); // home is always premium; hide selector
   }
   function renderPay(){
@@ -919,11 +1013,11 @@
       var f=computeFare(state.rideType,state.residents,state.pickup,state.destination);
       $("fareAmt").textContent=money(f.total);
       $("fareBreak").innerHTML=fareBreakText(f);
-      $("confirmBtn").disabled=false; $("confirmHint").textContent=t("hintGo");
+      $("confirmBtn").disabled=false; $("confirmBtn").classList.add("ready"); $("confirmHint").textContent=t("hintGo"); $("confirmHint").classList.add("ready");
     }else{
       $("fareAmt").textContent="—";
       $("fareBreak").textContent=state.pickup?t("selDest"):t("setBoth");
-      $("confirmBtn").disabled=true; $("confirmHint").textContent=state.pickup?t("hintPick"):t("hintScan");
+      $("confirmBtn").disabled=true; $("confirmBtn").classList.remove("ready"); $("confirmHint").textContent=state.pickup?t("hintPick"):t("hintScan"); $("confirmHint").classList.remove("ready");
     }
   }
   function renderAll(){ applyStaticText(); renderPickup(); renderPickupGrid(); renderDest(); updateMap(); renderRtypes(); renderPay(); renderRes(); updateFare(); }
@@ -962,6 +1056,27 @@
   }
   function pushLog(b){ var log=[]; try{ log=JSON.parse(lsGet(LS_LOG))||[]; }catch(e){} log.unshift(b); if(log.length>300) log=log.slice(0,300); lsSet(LS_LOG,JSON.stringify(log)); }
   var lastBooking=null;
+  function buildReviewRows(){
+    var f=computeFare(state.rideType,state.residents,state.pickup,state.destination);
+    $("revBody").innerHTML=
+      rowEl(t("rPickup"),pickupLabel()+" ("+pickupTag()+")")+
+      rowEl(t("rDest"),cpName(state.destination)+" (#"+state.destination+")")+
+      rowEl(t("rType"),typeName(state.rideType))+
+      rowEl(t("rRes"),String(state.residents))+
+      (f.dist==null?"":rowEl(t("rDist"),"~"+Math.round(f.dist)+" m"))+
+      rowEl(t("rPay"), state.payMethod==="instapay"?t("pm_instapay"):t("pm_cash"));
+    $("revFareLbl").textContent=t("lblFare");
+    $("revFareBreak").innerHTML=fareBreakText(f);
+    $("revFareAmt").textContent=money(f.total);
+  }
+  function openReview(){
+    if(!(state.pickup&&state.destination)) return;
+    $("revTitle").textContent=t("revTitle"); $("revSub").textContent=t("revNote");
+    $("revConfirmTxt").textContent=t("revConfirm"); $("revBack").textContent=t("revBack");
+    buildReviewRows();
+    $("reviewModal").classList.remove("hidden"); window.scrollTo(0,0);
+  }
+  function closeReview(){ $("reviewModal").classList.add("hidden"); }
   function doConfirm(){
     if(!(state.pickup&&state.destination)) return;
     bookingId=newId();
@@ -1023,7 +1138,7 @@
     var wa=$("launchWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("launchWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
   }
   function showHome(){ ["screen-book","screen-done","screen-driver","screen-launch"].forEach(function(s){ $(s).classList.add("hidden"); }); $("screen-home").classList.remove("hidden"); setHomeTexts(); }
-  function goToBooking(){ $("screen-home").classList.add("hidden"); $("screen-book").classList.remove("hidden"); if(!state.pickup&&!state.home) $("pickupPicker").classList.remove("hidden"); window.scrollTo(0,0); }
+  function goToBooking(){ $("screen-home").classList.add("hidden"); $("screen-book").classList.remove("hidden"); if(!state.pickup&&!state.home) $("pickupPicker").classList.remove("hidden"); updateMap(); window.scrollTo(0,0); }
   function setHomeTexts(){
     if(!$("homeTitle")) return;
     $("homeTitle").textContent=(cfg.welcomeTitle&&cfg.welcomeTitle.trim())||t("homeTitle"); $("homeSub").textContent=(cfg.welcomeSub&&cfg.welcomeSub.trim())||t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
@@ -1100,7 +1215,7 @@
   function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i) }); } }
   function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ var nx=routeEdit[(i+1)%routeEdit.length]; routeEdit[i].seg=Math.round(haversine([routeEdit[i].lat,routeEdit[i].lng],[nx.lat,nx.lng])*1.25/5)*5; } }
   function routeEditToText(){ return routeEdit.map(function(r){ return r.name+" | "+r.seg; }).join("\n"); }
-  function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } var pts=routeEdit.map(function(r){return [r.lat,r.lng];}); if(pts.length>1) pts.push(pts[0]); rLine=L.polyline(pts,{color:'#0b7a3b',weight:3,dashArray:'5 5'}).addTo(rMap); }
+  function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } var pts=routeEdit.map(function(r){return [r.lat,r.lng];}); if(pts.length>1) pts.push(pts[0]); rLine=L.polyline(pts,{color:'#1f9a48',weight:3,dashArray:'5 5'}).addTo(rMap); }
   function openRouteMap(){
     buildRouteEdit(); $("cfgLabels").value=routeEditToText();
     loadLeaflet(function(){
@@ -1128,7 +1243,7 @@
     $("cfgLabels").value=rt.map(function(r){ return r.name+" | "+r.seg; }).join("\n");
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
     $("cfgP1").value=cfg.priv[0]; $("cfgP2").value=cfg.priv[1]; $("cfgP3").value=cfg.priv[2];
-    $("cfgM1").value=cfg.mix[0]; $("cfgM2").value=cfg.mix[1]; $("cfgM3").value=cfg.mix[2];
+    $("cfgM2").value=cfg.mix[1]; $("cfgM3").value=cfg.mix[2];
     $("cfgPr1").value=cfg.prem[0]; $("cfgPr2").value=cfg.prem[1]; $("cfgPr3").value=cfg.prem[2];
     $("cfgPayLink").value=cfg.payLink||""; $("cfgChannel").value=cfg.channel||"";
     $("cfgWebhook").value=cfg.webhook||"";
@@ -1150,7 +1265,7 @@
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
     cfg.privT=[numv("cfgPt1",600),numv("cfgPt2",900)];
     cfg.priv=[numv("cfgP1",20),numv("cfgP2",25),numv("cfgP3",30)];
-    cfg.mix=[numv("cfgM1",20),numv("cfgM2",20),numv("cfgM3",15)];
+    var m2=numv("cfgM2",20); cfg.mix=[m2,m2,numv("cfgM3",15)];
     cfg.prem=[numv("cfgPr1",50),numv("cfgPr2",40),numv("cfgPr3",30)];
     cfg.payLink=$("cfgPayLink").value.trim();
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
@@ -1289,7 +1404,7 @@
 
   function initLogo(){
     var img=$("homeLogoImg"), fb=$("homeLogoFallback"); if(!img) return;
-    var cands=["Logo.png","logo.png"], i=0;
+    var cands=["Logo.png","logo.png","GoGolfy.jpg","gogolfy.jpg"], i=0;
     img.onload=function(){ if(img.naturalWidth>1){ fb.style.display="none"; img.style.display=""; } };
     img.onerror=function(){ if(i<cands.length){ img.src=cands[i++]; } else { img.style.display="none"; fb.style.display=""; } };
     img.src=cands[i++];
@@ -1305,9 +1420,12 @@
     $("langBtn").addEventListener("click",function(){ lang=(lang==="ar")?"en":"ar"; lsSet(LS_LANG,lang); renderAll(); if(state.driver){ $("driverTitle").textContent=t("driverTitle"); $("driverSub").textContent=t("driverSub"); setLive(!$("liveDot").classList.contains("off")); renderDash(); } });
     $("homeBook").addEventListener("click",goToBooking);
     $("changePickup").addEventListener("click",function(){ $("pickupPicker").classList.toggle("hidden"); });
-    $("minusBtn").addEventListener("click",function(){ if(state.residents>1){state.residents--;renderRes();updateFare();} });
-    $("plusBtn").addEventListener("click",function(){ if(state.residents<cfg.maxRes){state.residents++;renderRes();updateFare();} });
-    $("confirmBtn").addEventListener("click",doConfirm);
+    $("minusBtn").addEventListener("click",function(){ if(state.residents>1){state.residents--;renderRes();renderRtypes();updateFare();} });
+    $("plusBtn").addEventListener("click",function(){ if(state.residents<cfg.maxRes){state.residents++;renderRes();renderRtypes();updateFare();} });
+    $("confirmBtn").addEventListener("click",openReview);
+    $("revConfirm").addEventListener("click",function(){ closeReview(); doConfirm(); });
+    $("revBack").addEventListener("click",closeReview);
+    $("reviewModal").addEventListener("click",function(e){ if(e.target===$("reviewModal")) closeReview(); });
     $("againBtn").addEventListener("click",resetBooking);
     $("resendBtn").addEventListener("click",function(){ if(lastBooking) notifyDriver(lastBooking); });
     $("gearBtn").addEventListener("click",function(){ requireAdmin(openAdmin); });
