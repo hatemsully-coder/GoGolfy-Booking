@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#0b7a3b" />
 <title>GoGolfy — Scan to Ride</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
     --green:#0b7a3b; --green-dark:#075c2c; --green-light:#e9f7ef;
@@ -206,6 +204,36 @@
   .switch input:checked + .slider:before{transform:translateX(22px);}
   textarea#autoReply{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-family:inherit;background:#fff;color:var(--ink);resize:vertical;}
 
+  /* landing page */
+  .home{padding:4px 2px 20px;}
+  .home .hero{text-align:center;padding:14px 14px 6px;}
+  .home .hero h1{font-size:1.7rem;color:var(--green-dark);margin:8px 0 4px;font-weight:800;}
+  .home .hero p{color:var(--muted);margin:0 auto 16px;max-width:340px;}
+  .home .cta{width:100%;}
+  .home-steps{display:grid;gap:10px;margin:18px 0;}
+  .step{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;}
+  .step .n{width:28px;height:28px;border-radius:50%;background:var(--green-light);color:var(--green-dark);font-weight:800;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .step .tx b{display:block;font-size:.95rem;}
+  .step .tx span{font-size:.8rem;color:var(--muted);}
+  .home-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+  .home-card h3{margin:0 0 6px;font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;color:var(--green-dark);}
+  .fare-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem;}
+  .fare-row:last-child{border-bottom:none;}
+  .fare-row .muted{color:var(--muted);font-weight:700;}
+  .home-wa{display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;font-weight:800;
+    padding:13px;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(37,211,102,.25);}
+
+  /* launching soon */
+  .launch{min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px 20px;gap:4px;}
+  .launch .llogo{width:120px;height:auto;margin-bottom:8px;}
+  .launch h1{font-size:2rem;margin:8px 0 2px;color:var(--green-dark);font-weight:800;}
+  .launch .lsub{color:var(--muted);font-size:1rem;max-width:360px;margin:0 auto;line-height:1.55;}
+  .launch .ltag{color:var(--green);font-weight:700;margin-top:6px;}
+  .launch .lbtn{margin-top:20px;display:inline-flex;align-items:center;gap:8px;background:#25D366;color:#fff;font-weight:800;
+    padding:13px 24px;border-radius:30px;text-decoration:none;box-shadow:0 6px 18px rgba(37,211,102,.3);}
+  .launch .lbtn:active{filter:brightness(.95);}
+  .launch .ldots{margin-top:16px;color:var(--accent);font-size:1.5rem;letter-spacing:4px;}
+
   @media print{
     body{background:#fff;}
     .wrap>header,main>*:not(#screen-admin),footer,.modal-head,.tabs,.no-print{display:none!important;}
@@ -252,12 +280,6 @@
           </div>
         </div>
         <div id="pickupPicker" class="hidden" style="margin-top:12px;"><div class="grid" id="pickupGrid"></div></div>
-      </div>
-
-      <div class="card">
-        <div class="label" id="lblMap">🗺️ Compound map</div>
-        <div class="map-wrap" id="mapBox"></div>
-        <div class="map-hint" id="mapHint"></div>
       </div>
 
       <div class="card">
@@ -314,6 +336,47 @@
         <button class="cash-btn" id="cashBtn"></button>
         <button class="secondary-btn" id="resendBtn"></button>
         <button class="ghost-btn" id="againBtn"></button>
+      </div>
+    </section>
+
+    <section id="screen-home" class="hidden">
+      <div class="home">
+        <div class="hero">
+          <h1 id="homeTitle">Need a ride?</h1>
+          <p id="homeSub"></p>
+          <button class="confirm-btn cta" id="homeBook">🛺 <span id="homeBookTxt">Book a ride</span></button>
+        </div>
+        <div class="home-steps">
+          <div class="step"><div class="n">1</div><div class="tx"><b id="hs1t"></b><span id="hs1s"></span></div></div>
+          <div class="step"><div class="n">2</div><div class="tx"><b id="hs2t"></b><span id="hs2s"></span></div></div>
+          <div class="step"><div class="n">3</div><div class="tx"><b id="hs3t"></b><span id="hs3s"></span></div></div>
+        </div>
+        <div class="home-card">
+          <h3 id="homeFaresT">Ride types</h3>
+          <div id="homeFares"></div>
+        </div>
+        <a class="home-wa" id="homeWa" target="_blank" rel="noopener"></a>
+      </div>
+    </section>
+
+    <section id="screen-launch" class="hidden">
+      <div class="launch">
+        <svg class="llogo" viewBox="0 0 140 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g fill="#0b7a3b">
+            <rect x="18" y="14" width="86" height="9" rx="4.5"/>
+            <path d="M104 14 h10 a4 4 0 0 1 4 4 v5 h-14 z"/>
+            <rect x="24" y="21" width="6" height="22" rx="3"/>
+            <rect x="98" y="21" width="6" height="22" rx="3"/>
+            <path d="M14 56 v-9 a5 5 0 0 1 5 -5 h66 a5 5 0 0 1 3.5 1.5 l11 11 h17 a4 4 0 0 1 4 4 h-18 a12 12 0 0 0 -24 0 h-24 a12 12 0 0 0 -24 0 h-3 a5 5 0 0 1 -5 -3.5 z"/>
+          </g>
+          <circle cx="45" cy="64" r="11" fill="#0b7a3b"/><circle cx="45" cy="64" r="5" fill="#fff"/>
+          <circle cx="93" cy="64" r="11" fill="#0b7a3b"/><circle cx="93" cy="64" r="5" fill="#fff"/>
+        </svg>
+        <h1 id="launchTitle">Launching Soon</h1>
+        <div class="lsub" id="launchSub"></div>
+        <div class="ltag" id="launchTag"></div>
+        <a class="lbtn" id="launchWa" target="_blank" rel="noopener"></a>
+        <div class="ldots">• • •</div>
       </div>
     </section>
 
@@ -425,7 +488,7 @@
         </div>
 
         <button class="save-btn" id="saveSettings">Save settings</button>
-        <div class="btn-row"><button id="resetSettings" class="red">Reset to defaults</button></div>
+        <div class="btn-row"><button id="previewApp">👁 Preview booking app</button><button id="resetSettings" class="red">Reset to defaults</button></div>
       </div>
 
       <div id="tab-qr" class="hidden">
@@ -481,6 +544,8 @@
 <script>
 (function(){
   "use strict";
+  // ===== LAUNCH SWITCH: set to false to GO LIVE (then re-upload). true = "Launching Soon" page for the public =====
+  var LAUNCHING_SOON = false;
   var LS_CFG="gogolfy_cfg_v3", LS_LOG="gogolfy_log_v3", LS_LANG="gogolfy_lang_v3";
 
   // ---- storage with safe fallback (fixes save on file:// / private mode) ----
@@ -556,6 +621,12 @@
       each:"each", flat:"flat", saved:"✓ Saved", curr:"EGP",
       msgTitle:"GoGolfy Ride Request", msgWaiting:"A resident is waiting. Please proceed to pickup.",
       msgConfirm:"👉 Open to accept the ride:", pinPrompt:"Enter admin PIN", pinWrong:"Wrong PIN",
+      launchTitle:"Launching Soon", launchSub:"GoGolfy is getting ready to roll out in Dar Masr Al Andalous. We'll be live very soon — stay tuned!", launchTag:"Your ride inside.", launchWa:"💬 Contact us on WhatsApp",
+      homeTitle:"Need a ride? 🛺", homeSub:"GoGolfy — your golf-cart shuttle across Dar Masr Al Andalous.", homeBook:"Book a ride",
+      hs1t:"1 · Choose your pick-up point", hs1s:"Scan the QR at your spot, or pick it from the list.",
+      hs2t:"2 · Destination & payment", hs2s:"Pick where to go, the ride type, and InstaPay or Cash.",
+      hs3t:"3 · A driver is on the way", hs3s:"The driver is alerted instantly and accepts your ride.",
+      homeFaresT:"Ride types & fares", homeWa:"💬 Contact us on WhatsApp",
       m_pickup:"Pickup", m_drop:"Drop-off", m_res:"Residents", m_type:"Ride type", m_dist:"Distance", m_fare:"Fare",
       pay:"💳 Pay now (InstaPay)", payTitle:"How would you like to pay?",
       cash:"💵 Pay cash to driver", paySel:"✓ InstaPay opened", cashSel:"✓ Cash selected — pay the driver",
@@ -586,6 +657,12 @@
       each:"للفرد", flat:"ثابت", saved:"✓ تم الحفظ", curr:"ج.م",
       msgTitle:"طلب رحلة GoGolfy", msgWaiting:"أحد السكان في الانتظار. الرجاء التوجه لنقطة الانطلاق.",
       msgConfirm:"👉 افتح لقبول الرحلة:", pinPrompt:"أدخل رمز المشرف", pinWrong:"رمز غير صحيح",
+      launchTitle:"قريبًا الإطلاق", launchSub:"GoGolfy على وشك الانطلاق في دار مصر الأندلس. سنكون متاحين قريبًا جدًا — ترقّبوا!", launchTag:"رحلتك في الداخل.", launchWa:"💬 تواصل معنا على واتساب",
+      homeTitle:"محتاج توصيلة؟ 🛺", homeSub:"GoGolfy — خدمة عربة الجولف داخل دار مصر الأندلس.", homeBook:"احجز رحلة",
+      hs1t:"١ · اختر نقطة انطلاقك", hs1s:"امسح رمز QR في مكانك، أو اخترها من القائمة.",
+      hs2t:"٢ · الوجهة والدفع", hs2s:"حدد وجهتك ونوع الرحلة وطريقة الدفع (إنستاباي أو نقدًا).",
+      hs3t:"٣ · السائق في الطريق", hs3s:"يصل الإخطار للسائق فورًا ويؤكد رحلتك.",
+      homeFaresT:"أنواع الرحلات والأسعار", homeWa:"💬 تواصل معنا على واتساب",
       m_pickup:"الانطلاق", m_drop:"الوجهة", m_res:"الركاب", m_type:"نوع الرحلة", m_dist:"المسافة", m_fare:"الأجرة",
       pay:"💳 ادفع الآن (إنستاباي)", payTitle:"كيف تحب أن تدفع؟",
       cash:"💵 الدفع نقدًا للسائق", paySel:"✓ تم فتح إنستاباي", cashSel:"✓ تم اختيار النقد — ادفع للسائق",
@@ -619,7 +696,7 @@
   var BAND_COLORS=["var(--band1)","var(--band2)","var(--band3)"];
 
   // ---- state ----
-  var state={ pickup:null, destination:null, residents:1, rideType:"private", home:false, driver:false, payMethod:"cash" };
+  var state={ pickup:null, destination:null, residents:1, rideType:"private", home:false, driver:false, payMethod:"cash", launch:false };
   function $(id){ return document.getElementById(id); }
 
   function parseUrl(){
@@ -645,7 +722,8 @@
     $("lblPickup").textContent=t("lblPickup"); $("lblDest").textContent=t("lblDest");
     $("lblRtype").textContent=t("lblRtype"); $("lblResidents").textContent=t("lblResidents");
     $("lblFare").textContent=t("lblFare"); $("resUnit").textContent=t("resUnit"); $("lblPhone").textContent=t("lblPhone");
-    $("lblMap").textContent=t("lblMap"); $("mapHint").textContent=t("mapHint"); $("lblPay").textContent=t("lblPay");
+    $("lblPay").textContent=t("lblPay");
+    setLaunchTexts(); setHomeTexts();
     $("pinTxt").textContent=t("point"); $("changePickup").textContent=t("change");
     $("confirmTxt").textContent=t("confirm");
     $("doneTitle").textContent=t("doneTitle"); $("doneLead").textContent=t("doneLead");
@@ -679,37 +757,7 @@
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
-  // ---- real map (Leaflet + satellite/street) ----
-  var ggMap=null, ggMarkers={}, ggRoute=null;
-  function ptLatLng(i){ var c=CHECKPOINTS[i-1]; return [c.lat, c.lng]; }
-  function pinIcon(i,type){ var cls='gg-pin'+(type==='pk'?' pk':(type==='ds'?' ds':'')); return L.divIcon({className:'', html:'<div class="'+cls+'">'+i+'</div>', iconSize:[28,28], iconAnchor:[14,14]}); }
-  function initMap(){
-    if(ggMap || state.driver || typeof L==='undefined') return;
-    var box=$("mapBox"); if(!box || $("screen-book").classList.contains("hidden")) return;
-    ggMap=L.map(box,{zoomControl:true});
-    var sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:'Tiles &copy; Esri'});
-    var street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap'});
-    sat.addTo(ggMap);
-    L.control.layers({'Satellite':sat,'Street':street},null,{position:'topright'}).addTo(ggMap);
-    var pts=[];
-    for(var i=1;i<=N;i++){(function(n){
-      var ll=ptLatLng(n); pts.push(ll);
-      var m=L.marker(ll,{icon:pinIcon(n,'')}).addTo(ggMap);
-      m.on('click',function(){ if(!state.home && !state.pickup){ state.pickup=n; } else if(n!==state.pickup){ state.destination=n; } renderAll(); });
-      m.bindTooltip(cpName(n),{direction:'top'});
-      ggMarkers[n]=m;
-    })(i);}
-    ggMap.fitBounds(pts,{padding:[28,28]});
-    setTimeout(function(){ if(ggMap) ggMap.invalidateSize(); },250);
-  }
-  function updateMap(){
-    if(!ggMap){ initMap(); }
-    if(!ggMap) return;
-    for(var i=1;i<=N;i++){ var type=(!state.home&&state.pickup===i)?'pk':(state.destination===i?'ds':'');
-      if(ggMarkers[i]){ ggMarkers[i].setIcon(pinIcon(i,type)); ggMarkers[i].setTooltipContent(cpName(i)); } }
-    if(ggRoute){ ggMap.removeLayer(ggRoute); ggRoute=null; }
-    if(!state.home && state.pickup && state.destination){ ggRoute=L.polyline([ptLatLng(state.pickup),ptLatLng(state.destination)],{color:'#e0a106',weight:4,dashArray:'6 6'}).addTo(ggMap); }
-  }
+  function updateMap(){}  // map removed
   function renderRtypes(){
     var box=$("rtypes"); box.innerHTML="";
     var list=state.home?["premium"]:(cfg.homeEnabled!==false?RIDE_TYPES:["private","mixed"]);
@@ -822,7 +870,7 @@
     $("resendBtn").classList.toggle("hidden", !cfg.waEnabled);
     $("screen-book").classList.add("hidden"); $("screen-done").classList.remove("hidden"); window.scrollTo(0,0);
   }
-  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); setTimeout(function(){ if(ggMap) ggMap.invalidateSize(); },120); window.scrollTo(0,0); }
+  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); window.scrollTo(0,0); }
 
   // ---- admin ----
   var adminAuthedMem=false;
@@ -835,6 +883,29 @@
     if(String(pin)===String(cfg.adminPin||"")){ setAdminAuthed(); cb(); } else alert(t("pinWrong"));
   }
   function openAdmin(){ fillSettings(); $("adminOverlay").classList.remove("hidden"); }
+  function previewAllowed(){ try{ var q=new URLSearchParams(location.search); if(q.get("preview")==="1") sessionStorage.setItem("gg_preview","1"); return sessionStorage.getItem("gg_preview")==="1"; }catch(e){ return false; } }
+  function showLaunchScreen(){
+    $("screen-book").classList.add("hidden"); $("screen-done").classList.add("hidden"); $("screen-driver").classList.add("hidden");
+    $("screen-launch").classList.remove("hidden"); setLaunchTexts();
+  }
+  function setLaunchTexts(){
+    if(!$("launchTitle")) return;
+    $("launchTitle").textContent=t("launchTitle"); $("launchSub").textContent=t("launchSub"); $("launchTag").textContent=t("launchTag");
+    var wa=$("launchWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("launchWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
+  }
+  function showHome(){ ["screen-book","screen-done","screen-driver","screen-launch"].forEach(function(s){ $(s).classList.add("hidden"); }); $("screen-home").classList.remove("hidden"); setHomeTexts(); }
+  function goToBooking(){ $("screen-home").classList.add("hidden"); $("screen-book").classList.remove("hidden"); if(!state.pickup&&!state.home) $("pickupPicker").classList.remove("hidden"); window.scrollTo(0,0); }
+  function setHomeTexts(){
+    if(!$("homeTitle")) return;
+    $("homeTitle").textContent=t("homeTitle"); $("homeSub").textContent=t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
+    ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT"].forEach(function(k){ $(k).textContent=t(k); });
+    var cur=lang==="ar"?"ج.م":"EGP";
+    var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+cur]];
+    rows.push([typeName("mixed"), cfg.mix[0]+"/"+cfg.mix[2]+" "+cur]);
+    if(cfg.homeEnabled!==false) rows.push([typeName("premium"), cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+cur]);
+    $("homeFares").innerHTML=rows.map(function(r){ return '<div class="fare-row"><span>'+esc(r[0])+'</span><span class="muted">'+esc(r[1])+'</span></div>'; }).join("");
+    var wa=$("homeWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("homeWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
+  }
   function closeAdmin(){ $("adminOverlay").classList.add("hidden"); }
   function switchTab(name){
     ["settings","qr","log","host"].forEach(function(x){ $("tab-"+x).classList.toggle("hidden",x!==name); });
@@ -1010,9 +1081,13 @@
 
   function init(){
     parseUrl();
+    state.launch = LAUNCHING_SOON && !state.driver && !previewAllowed();
     renderAll();
-    if(state.driver){ startDashboard(); }
+    if(state.launch){ showLaunchScreen(); }
+    else if(state.driver){ startDashboard(); }
+    else if(!state.pickup && !state.home){ showHome(); }
     $("langBtn").addEventListener("click",function(){ lang=(lang==="ar")?"en":"ar"; lsSet(LS_LANG,lang); renderAll(); if(state.driver){ $("driverTitle").textContent=t("driverTitle"); $("driverSub").textContent=t("driverSub"); setLive(!$("liveDot").classList.contains("off")); renderDash(); } });
+    $("homeBook").addEventListener("click",goToBooking);
     $("changePickup").addEventListener("click",function(){ $("pickupPicker").classList.toggle("hidden"); });
     $("minusBtn").addEventListener("click",function(){ if(state.residents>1){state.residents--;renderRes();updateFare();} });
     $("plusBtn").addEventListener("click",function(){ if(state.residents<cfg.maxRes){state.residents++;renderRes();updateFare();} });
@@ -1026,6 +1101,7 @@
     document.querySelectorAll(".tab").forEach(function(tb){ tb.addEventListener("click",function(){ switchTab(tb.getAttribute("data-tab")); }); });
     $("saveSettings").addEventListener("click",saveSettings);
     $("resetSettings").addEventListener("click",resetSettings);
+    $("previewApp").addEventListener("click",function(){ try{ sessionStorage.setItem("gg_preview","1"); }catch(e){} location.href=location.pathname; });
     $("genQr").addEventListener("click",genQr);
     $("printQr").addEventListener("click",function(){ window.print(); });
     $("copyAutoReply").addEventListener("click",function(){ var b=$("copyAutoReply"); navigator.clipboard&&navigator.clipboard.writeText($("autoReply").value); var o=b.textContent; b.textContent="✓ Copied"; setTimeout(function(){ b.textContent=o; },1400); });
