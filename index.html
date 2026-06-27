@@ -204,6 +204,15 @@
   .switch input:checked + .slider:before{transform:translateX(22px);}
   textarea#autoReply{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-family:inherit;background:#fff;color:var(--ink);resize:vertical;}
 
+  /* landing logo */
+  .home-logo{text-align:center;margin:4px 0 6px;}
+  .home-logo img{max-width:240px;width:74%;height:auto;}
+  .hl-word{font-weight:800;font-size:1.9rem;color:var(--green-dark);letter-spacing:.3px;line-height:1;}
+  .hl-tag{font-size:.66rem;letter-spacing:2px;color:var(--muted);font-weight:700;margin-top:2px;}
+  /* admin route map */
+  #routeMap{width:100%;height:300px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;margin-bottom:8px;}
+  .gg-pin{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-weight:800;font-size:13px;border:2px solid var(--green);background:#fff;color:#15241c;box-shadow:0 1px 5px rgba(0,0,0,.35);}
+  .leaflet-container{font-family:inherit;}
   /* landing page */
   .home{padding:4px 2px 20px;}
   .home .hero{text-align:center;padding:14px 14px 6px;}
@@ -360,6 +369,21 @@
     <section id="screen-home" class="hidden">
       <div class="home">
         <div class="hero">
+          <div class="home-logo" id="homeLogo">
+            <img id="homeLogoImg" src="logo.png" alt="GoGolfy" />
+            <div id="homeLogoFallback">
+              <svg viewBox="0 0 150 100" width="110" height="73" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block;margin:0 auto">
+                <g fill="none" stroke="#0b7a3b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M24 22 H116"/><path d="M32 22 V42"/><path d="M108 22 V36"/><path d="M108 36 L124 60"/><path d="M24 42 V60 H124"/><path d="M60 42 V58"/>
+                </g>
+                <g fill="#0b7a3b"><rect x="32" y="46" width="24" height="7" rx="3"/><rect x="66" y="46" width="34" height="7" rx="3"/></g>
+                <circle cx="46" cy="74" r="13" fill="#0b7a3b"/><circle cx="46" cy="74" r="5.5" fill="#fff"/>
+                <circle cx="106" cy="74" r="13" fill="#0b7a3b"/><circle cx="106" cy="74" r="5.5" fill="#fff"/>
+              </svg>
+              <div class="hl-word">GoGolfy</div>
+              <div class="hl-tag">YOUR RIDE INSIDE.</div>
+            </div>
+          </div>
           <h1 id="homeTitle">Need a ride?</h1>
           <p id="homeSub"></p>
           <button class="confirm-btn cta" id="homeBook">🛺 <span id="homeBookTxt">Book a ride</span></button>
@@ -441,6 +465,10 @@
           </div>
           <div class="field"><label>Max residents</label><input type="number" id="cfgMaxRes" min="1" max="20" /></div>
         </div>
+        <div class="g2">
+          <div class="field"><label>Community name</label><input type="text" id="cfgCompound" placeholder="Dar Masr Al Andalous" /></div>
+          <div class="field"><label>Currency</label><input type="text" id="cfgCurrency" placeholder="EGP" /></div>
+        </div>
         <div class="field">
           <label>Admin PIN</label>
           <div class="desc">Required to open this Settings dashboard. Residents can't see it. Change it from the default (1234).</div>
@@ -456,7 +484,8 @@
         </div>
         <div class="field">
           <label>Pick-up points & route</label>
-          <div class="desc">One line per point <b>in order (the sequence)</b>, format: <code>Name | distance to next point (m)</code>. Reorder lines to change the sequence; edit names &amp; distances freely. Fares use these distances. The last point loops back to the first.</div>
+          <div class="desc"><b>Drag a pin on the map</b> to move a pick-up point — distances recalculate automatically. Or edit below: one line per point <b>in order (the sequence)</b>, format <code>Name | distance to next (m)</code>. Reorder lines to change sequence. Fares use these distances; the last point loops to the first.</div>
+          <div id="routeMap"></div>
           <textarea id="cfgLabels" rows="8" style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-family:monospace;background:#fff;color:var(--ink);"></textarea>
         </div>
 
@@ -631,7 +660,9 @@
     cost:0,                                        // cost per ride (EGP) for profit/margin
     statsUrl:"https://hatemsully.app.n8n.cloud/webhook/gogolfy-stats",  // analytics API
     welcomeTitle:"",                               // landing welcome title (blank = default)
-    welcomeSub:""                                  // landing welcome subtitle (blank = default)
+    welcomeSub:"",                                 // landing welcome subtitle (blank = default)
+    compound:"",                                   // community name (blank = default)
+    currency:""                                    // currency label (blank = EGP/ج.م)
   };
 
   function loadCfg(){ try{ return Object.assign({},DEFAULTS,JSON.parse(lsGet(LS_CFG))||{}); }catch(e){ return Object.assign({},DEFAULTS); } }
@@ -720,7 +751,9 @@
   function t(k){ return (T[lang]&&T[lang][k]!=null)?T[lang][k]:T.en[k]; }
   function cpName(i){ if(cfg.route&&cfg.route[i-1]&&cfg.route[i-1].name) return cfg.route[i-1].name; var ov=cfg.labels&&cfg.labels[i-1]; if(ov&&String(ov).trim()) return String(ov).trim(); return CHECKPOINTS[i-1]?(lang==="ar"?CHECKPOINTS[i-1].ar:CHECKPOINTS[i-1].en):("#"+i); }
   function typeName(ty){ return t("t_"+ty); }
-  function money(v){ var n=Math.round(v*100)/100; return lang==="ar"?(n+" "+t("curr")):(t("curr")+" "+n); }
+  function cur(){ return (cfg.currency&&cfg.currency.trim())||t("curr"); }
+  function comp(){ return (cfg.compound&&cfg.compound.trim())||t("compound"); }
+  function money(v){ var n=Math.round(v*100)/100; return lang==="ar"?(n+" "+cur()):(cur()+" "+n); }
 
   // ---- distance + fares ----
   function rideDistance(posA,posB){ if(!posA||!posB||posA==="home"||posB==="home") return null; var p=routePos(); var d=Math.abs(p[posA]-p[posB]); return Math.min(d, p._total-d); }
@@ -759,7 +792,7 @@
   function applyStaticText(){
     document.documentElement.lang=lang; document.documentElement.dir=(lang==="ar")?"rtl":"ltr";
     $("tagline").textContent=t("tagline");
-    $("compoundName").textContent=t("compound");
+    $("compoundName").textContent=comp();
     $("langBtn").textContent=t("langBtn");
     $("lblPickup").textContent=t("lblPickup"); $("lblDest").textContent=t("lblDest");
     $("lblRtype").textContent=t("lblRtype"); $("lblResidents").textContent=t("lblResidents");
@@ -801,7 +834,7 @@
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
   function updateMap(){}  // map removed
   function rtDesc(ty){
-    var u=lang==="ar"?"ج.م":"EGP", per=lang==="ar"?"للفرد":"each", pp=lang==="ar"?"للفرد":"per person";
+    var u=cur(), per=lang==="ar"?"للفرد":"each", pp=lang==="ar"?"للفرد":"per person";
     if(ty==="private") return (lang==="ar"?"حسب المسافة · ":"By distance · ")+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u+" "+pp;
     if(ty==="mixed") return (lang==="ar"?"مشترك · ":"Shared · ")+cfg.mix[1]+" "+per+" (2), "+cfg.mix[2]+" "+per+" (3+)";
     if(ty==="premium") return (lang==="ar"?"من المنزل · ":"Home · ")+cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u+" "+pp;
@@ -856,7 +889,7 @@
   function driverLink(){ var u=cfg.baseUrl||""; if(!u) return ""; return u+(u.indexOf("?")>=0?"&":"?")+"driver=1"; }
   function buildMessage(b){
     var dl=driverLink();
-    return "🛺 *"+t("msgTitle")+"*\n"+t("compound")+"\n————————————\n"
+    return "🛺 *"+t("msgTitle")+"*\n"+comp()+"\n————————————\n"
       +"📍 "+t("m_pickup")+": "+b.pickupName+" ("+b.pickupTag+")\n"
       +"🎯 "+t("m_drop")+": "+b.destName+" (#"+b.destination+")\n"
       +"🚗 "+t("m_type")+": "+b.typeName+"\n"
@@ -933,7 +966,7 @@
     if(pin===null) return;
     if(String(pin)===String(cfg.adminPin||"")){ setAdminAuthed(); cb(); } else alert(t("pinWrong"));
   }
-  function openAdmin(){ fillSettings(); $("adminOverlay").classList.remove("hidden"); }
+  function openAdmin(){ fillSettings(); $("adminOverlay").classList.remove("hidden"); setTimeout(openRouteMap,180); }
   function previewAllowed(){ try{ var q=new URLSearchParams(location.search); if(q.get("preview")==="1") sessionStorage.setItem("gg_preview","1"); return sessionStorage.getItem("gg_preview")==="1"; }catch(e){ return false; } }
   function showLaunchScreen(){
     $("screen-book").classList.add("hidden"); $("screen-done").classList.add("hidden"); $("screen-driver").classList.add("hidden");
@@ -950,10 +983,10 @@
     if(!$("homeTitle")) return;
     $("homeTitle").textContent=(cfg.welcomeTitle&&cfg.welcomeTitle.trim())||t("homeTitle"); $("homeSub").textContent=(cfg.welcomeSub&&cfg.welcomeSub.trim())||t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
     ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT"].forEach(function(k){ $(k).textContent=t(k); });
-    var cur=lang==="ar"?"ج.م":"EGP";
-    var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+cur]];
-    rows.push([typeName("mixed"), cfg.mix[0]+"/"+cfg.mix[2]+" "+cur]);
-    if(cfg.homeEnabled!==false) rows.push([typeName("premium"), cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+cur]);
+    var u=cur();
+    var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u]];
+    rows.push([typeName("mixed"), cfg.mix[0]+"/"+cfg.mix[2]+" "+u]);
+    if(cfg.homeEnabled!==false) rows.push([typeName("premium"), cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u]);
     $("homeFares").innerHTML=rows.map(function(r){ return '<div class="fare-row"><span>'+esc(r[0])+'</span><span class="muted">'+esc(r[1])+'</span></div>'; }).join("");
     var wa=$("homeWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("homeWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
   }
@@ -963,10 +996,11 @@
     document.querySelectorAll(".tab").forEach(function(el){ el.classList.toggle("active",el.getAttribute("data-tab")===name); });
     if(name==="log") renderLog();
     if(name==="reports") renderReports();
+    if(name==="settings") setTimeout(openRouteMap,60);
     if(name==="qr"&&!$("cfgBaseUrl").value) $("cfgBaseUrl").value=cfg.baseUrl||defaultBaseUrl();
     if(name==="qr") $("autoReply").value=buildAutoReply();
   }
-  function curUnit(){ return lang==="ar"?"ج.م":"EGP"; }
+  function curUnit(){ return cur(); }
   function barChart(data, key, cls, fmt){
     if(!data.length) return '<div class="dash-empty">—</div>';
     var max=1; data.forEach(function(d){ if(d[key]>max) max=d[key]; });
@@ -1002,10 +1036,43 @@
   }
   function buildAutoReply(){
     var u=cfg.baseUrl||"https://gogolfy.net/";
-    return "🛺 GoGolfy — "+t("compound")+"\n"
+    return "🛺 GoGolfy — "+comp()+"\n"
       +"احجز رحلتك الآن / Book your ride now:\n"+u+"\n"
       +"افتح الرابط، اختر وجهتك من الخريطة وأكّد — وسيصلك سائق.\n"
       +"Open the link, pick your destination on the map & confirm — a driver will be notified.";
+  }
+  // ---- admin route map (Leaflet, lazy-loaded) ----
+  var leafletLoading=false, rMap=null, rMarkers=[], rLine=null, routeEdit=[];
+  function loadLeaflet(cb){
+    if(window.L){ cb(); return; }
+    if(!document.getElementById("leafletCss")){ var css=document.createElement("link"); css.id="leafletCss"; css.rel="stylesheet"; css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(css); }
+    if(leafletLoading){ var t=setInterval(function(){ if(window.L){ clearInterval(t); cb(); } },120); return; }
+    leafletLoading=true; var s=document.createElement("script"); s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; s.onload=function(){ cb(); }; document.head.appendChild(s);
+  }
+  function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
+  function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
+  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i) }); } }
+  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ var nx=routeEdit[(i+1)%routeEdit.length]; routeEdit[i].seg=Math.round(haversine([routeEdit[i].lat,routeEdit[i].lng],[nx.lat,nx.lng])*1.25/5)*5; } }
+  function routeEditToText(){ return routeEdit.map(function(r){ return r.name+" | "+r.seg; }).join("\n"); }
+  function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } var pts=routeEdit.map(function(r){return [r.lat,r.lng];}); if(pts.length>1) pts.push(pts[0]); rLine=L.polyline(pts,{color:'#0b7a3b',weight:3,dashArray:'5 5'}).addTo(rMap); }
+  function openRouteMap(){
+    buildRouteEdit(); $("cfgLabels").value=routeEditToText();
+    loadLeaflet(function(){
+      var box=$("routeMap"); if(!box) return;
+      if(rMap){ try{rMap.remove();}catch(e){} rMap=null; rMarkers=[]; rLine=null; }
+      rMap=L.map(box);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:'Tiles &copy; Esri'}).addTo(rMap);
+      var pts=[];
+      routeEdit.forEach(function(r,idx){
+        var m=L.marker([r.lat,r.lng],{draggable:true,icon:L.divIcon({className:'',html:'<div class="gg-pin">'+(idx+1)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(rMap);
+        m.on('dragend',function(){ var ll=m.getLatLng(); routeEdit[idx].lat=ll.lat; routeEdit[idx].lng=ll.lng; recalcSegs(); $("cfgLabels").value=routeEditToText(); drawRouteLine(); });
+        m.bindTooltip(r.name,{direction:'top'});
+        rMarkers.push(m); pts.push([r.lat,r.lng]);
+      });
+      drawRouteLine();
+      if(pts.length) rMap.fitBounds(pts,{padding:[28,28]});
+      setTimeout(function(){ if(rMap) rMap.invalidateSize(); },300);
+    });
   }
   function fillSettings(){
     $("storeNote").textContent=storageOK()?"Settings save on this device.":"⚠ This browser is blocking storage (private mode / opened from disk). Settings work for now but won't persist after closing — host the app to make them stick.";
@@ -1021,6 +1088,7 @@
     $("cfgWebhook").value=cfg.webhook||"";
     $("cfgCost").value=cfg.cost||0; $("cfgStats").value=cfg.statsUrl||"";
     $("cfgWelTitle").value=cfg.welcomeTitle||""; $("cfgWelSub").value=cfg.welcomeSub||"";
+    $("cfgCompound").value=cfg.compound||""; $("cfgCurrency").value=cfg.currency||"";
     $("cfgBaseUrl").value=cfg.baseUrl||"";
   }
   function numv(id,d){ var v=Number($(id).value); return isNaN(v)?d:v; }
@@ -1031,7 +1099,7 @@
     cfg.homeEnabled=$("cfgHome").checked;
     cfg.waEnabled=$("cfgWa").checked;
     var rlines=$("cfgLabels").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s;});
-    cfg.route=rlines.map(function(line){ var p=line.split("|"); return { name:(p[0]||"").trim(), seg:(parseInt(String(p[1]||"").replace(/[^0-9]/g,""),10)||0) }; });
+    cfg.route=rlines.map(function(line,idx){ var p=line.split("|"); var o={ name:(p[0]||"").trim(), seg:(parseInt(String(p[1]||"").replace(/[^0-9]/g,""),10)||0) }; if(routeEdit[idx]&&routeEdit[idx].lat!=null){ o.lat=routeEdit[idx].lat; o.lng=routeEdit[idx].lng; } return o; });
     cfg.labels=[];
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
     cfg.privT=[numv("cfgPt1",600),numv("cfgPt2",900)];
@@ -1043,6 +1111,7 @@
     cfg.webhook=$("cfgWebhook").value.trim();
     cfg.cost=Number($("cfgCost").value)||0; cfg.statsUrl=$("cfgStats").value.trim();
     cfg.welcomeTitle=$("cfgWelTitle").value; cfg.welcomeSub=$("cfgWelSub").value;
+    cfg.compound=$("cfgCompound").value; cfg.currency=$("cfgCurrency").value;
     cfg.baseUrl=$("cfgBaseUrl").value.trim();
     saveCfg();
     if(state.driver) connectDash();
@@ -1172,8 +1241,15 @@
   }
   function beep(){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination); o.type="sine"; o.frequency.value=880; g.gain.value=.12; o.start(); setTimeout(function(){o.frequency.value=1175;},120); setTimeout(function(){o.stop();a.close();},260); }catch(e){} }
 
+  function initLogo(){
+    var img=$("homeLogoImg"), fb=$("homeLogoFallback"); if(!img) return;
+    img.onload=function(){ if(img.naturalWidth>1){ fb.style.display="none"; } };
+    img.onerror=function(){ img.style.display="none"; };
+    if(img.complete){ if(img.naturalWidth>1){ fb.style.display="none"; } else { img.style.display="none"; } }
+  }
   function init(){
     parseUrl();
+    initLogo();
     state.launch = LAUNCHING_SOON && !state.driver && !previewAllowed();
     renderAll();
     if(state.launch){ showLaunchScreen(); }
