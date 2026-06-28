@@ -1067,9 +1067,9 @@
       if(bLine){ bMap.removeLayer(bLine); bLine=null; }
       if(bLoop){ bMap.removeLayer(bLoop); bLoop=null; }
       try{ var tp=bMap.getPane('tooltipPane'); if(tp) tp.innerHTML=''; }catch(e){}
-      // the compound loop road (subtle — straight lines between points)
+      // no full-loop connecting line (those inter-point chords looked like cross-cutting "side lines");
+      // we only draw the actual shortest route below.
       var all=[]; for(var i=1;i<=N;i++) all.push(ptCoord(i));
-      bLoop=L.polyline(loopCoordsAll(),{color:'#ffffff',weight:2,opacity:.5,dashArray:'4 7',lineJoin:'round'}).addTo(bMap);
       // all other points — small, tappable: first sets pickup (if none), then destination
       for(var j=1;j<=N;j++){(function(n){
         if(n===state.pickup || n===state.destination) return;
