@@ -237,6 +237,22 @@
   @keyframes dlp{0%{box-shadow:0 0 0 0 rgba(31,154,72,.5)}70%{box-shadow:0 0 0 10px rgba(31,154,72,0)}100%{box-shadow:0 0 0 0 rgba(31,154,72,0)}}
   .loc-btn{width:100%;padding:13px;border:2px solid var(--green);border-radius:14px;background:#fff;color:var(--green-dark);font-weight:800;font-size:.95rem;cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px;}
   .loc-btn.on{background:var(--green);color:#fff;border-color:var(--green);animation:cbpulse 1.7s ease-in-out infinite;}
+  /* driver: fleet map, nearest, schedule, manual add */
+  #driverFleetMap{width:100%;height:200px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;margin-bottom:12px;}
+  .dash-hint{font-size:.8rem;color:var(--muted);background:var(--green-light);border-radius:10px;padding:9px 11px;margin-bottom:10px;}
+  .dcard.nearest{border:2px solid var(--green);box-shadow:0 4px 16px rgba(31,154,72,.22);}
+  .d-near{font-size:.8rem;color:var(--green-dark);font-weight:800;margin-top:4px;}
+  .sched-badge{display:inline-block;font-size:.76rem;font-weight:800;color:#8a5a00;background:#fff4d6;border-radius:8px;padding:3px 8px;margin-top:5px;}
+  .sched-badge.urgent{color:#fff;background:#e23b3b;}
+  .badge.manual{background:#eef;color:#3a3aa0;}
+  .drv-actions{margin-bottom:12px;}
+  .add-ride-btn{width:100%;padding:12px;border:2px dashed var(--green);border-radius:14px;background:#fff;color:var(--green-dark);font-weight:800;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .add-ride-form{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);}
+  .add-ride-form .arf-title{font-weight:800;color:var(--green-dark);margin-bottom:10px;}
+  .add-ride-form select,.add-ride-form input{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:.95rem;font-family:inherit;background:#fff;color:var(--ink);}
+  .add-ride-form .arf-row{display:flex;gap:8px;margin-top:6px;}
+  .add-ride-form .arf-row .save-btn{margin-top:0;}
+  .when-hint{font-size:.78rem;color:var(--muted);margin-top:8px;}
   /* admin toggle */
   .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;}
   .toggle-row .tg-label{font-weight:700;font-size:.9rem;}
@@ -408,6 +424,14 @@
       </div>
 
       <div class="card">
+        <div class="label" id="lblWhen">🕒 When</div>
+        <div class="rtypes" id="whenTypes"></div>
+        <input type="datetime-local" id="schedTime" class="hidden"
+          style="width:100%;margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;font-family:inherit;background:#fff;color:var(--ink);" />
+        <div class="when-hint" id="whenHint"></div>
+      </div>
+
+      <div class="card">
         <div class="label" id="lblPhone">📱 Your WhatsApp (optional)</div>
         <input type="tel" id="clientPhone" inputmode="numeric" placeholder="201xxxxxxxxx"
           style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;font-family:inherit;background:#fff;color:var(--ink);" />
@@ -532,6 +556,23 @@
         <div class="livedot off" id="liveDot"><span class="d"></span><span id="liveTxt">…</span></div>
       </div>
       <button class="loc-btn" id="shareLocBtn">📍 <span id="shareLocTxt">Share my live location</span></button>
+      <div id="driverFleetMap" class="hidden"></div>
+      <div class="drv-actions">
+        <button class="add-ride-btn" id="addRideBtn">➕ <span id="addRideTxt">Add a ride manually</span></button>
+      </div>
+      <div class="add-ride-form hidden" id="addRideForm">
+        <div class="arf-title" id="arfTitle">Add a ride</div>
+        <div class="field"><label id="arfPickupL">Pickup point</label><select id="arfPickup"></select></div>
+        <div class="field"><label id="arfDestL">Destination</label><select id="arfDest"></select></div>
+        <div class="g2">
+          <div class="field"><label id="arfResL">Residents</label><input type="number" id="arfRes" min="1" value="1" /></div>
+          <div class="field"><label id="arfWhenL">When</label><input type="datetime-local" id="arfWhen" /></div>
+        </div>
+        <div class="arf-row">
+          <button class="save-btn" id="arfSave">Add ride</button>
+          <button class="back-btn" id="arfCancel" style="margin-top:0;">Cancel</button>
+        </div>
+      </div>
       <div id="dashList"></div>
     </section>
   </main>
@@ -842,9 +883,13 @@
       live:"Live", offline:"Offline", b_accept:"Accept", b_arrive:"Arriving", b_done:"✅ Done (paid)", b_paid:"💳 Paid",
       notePrompt:"Trip done — money received. Add a note (optional):",
       mapTapHint:"Tap a point on the map to set your destination",
-      locShare:"Share my live location", locSharing:"📍 Sharing your location — tap to stop",
-      locDenied:"Location permission denied. Please allow location to share it with riders.", locNoGeo:"Location is not available on this device.",
-      dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you."
+      locShare:"Find nearest & share my location", locSharing:"Location on — nearest first · tap to stop",
+      locDenied:"Location permission denied. Please allow location to find the nearest rider and share it.", locNoGeo:"Location is not available on this device.",
+      dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you.",
+      lblWhen:"🕒 When", whenNow:"Ride now", whenLater:"Schedule for later", whenNowHint:"A driver comes as soon as possible.", whenSet:"Scheduled for:",
+      nearest:"Nearest — pick up next", away:"~{m} m · ~{min} min from you", nearHint:"Turn on your location (button above) to see who's nearest and on your way.",
+      inMin:"in {n} min", dueNow:"due now", b_manual:"✋ Manual",
+      addRide:"Add a ride manually", arfTitle:"Add a ride", arfPickupL:"Pickup point", arfDestL:"Destination", arfResL:"Residents", arfWhenL:"When (leave empty = now)", arfSave:"Add ride", arfCancel:"Cancel", arfErr:"Choose a pickup and a different destination."
     },
     ar:{
       tagline:"رحلتك في الداخل · امسح للركوب", compound:"دار مصر الأندلس — المرحلة الثانية",
@@ -888,9 +933,13 @@
       live:"مباشر", offline:"غير متصل", b_accept:"قبول", b_arrive:"يصل", b_done:"✅ تم (مدفوع)", b_paid:"💳 مدفوع",
       notePrompt:"تمت الرحلة — تم استلام المبلغ. أضف ملاحظة (اختياري):",
       mapTapHint:"اضغط نقطة على الخريطة لتحديد وجهتك",
-      locShare:"شارك موقعي المباشر", locSharing:"📍 يتم مشاركة موقعك — اضغط للإيقاف",
-      locDenied:"تم رفض إذن الموقع. فضلاً اسمح بالموقع لمشاركته مع الركاب.", locNoGeo:"الموقع غير متاح على هذا الجهاز.",
-      dlTitle:"🚗 موقع السائق (مباشر)", dlNote:"يتم التحديث مباشرة أثناء تحرك السائق نحوك."
+      locShare:"الأقرب ومشاركة موقعي", locSharing:"الموقع مُفعّل — الأقرب أولاً · اضغط للإيقاف",
+      locDenied:"تم رفض إذن الموقع. فضلاً اسمح بالموقع لإيجاد الأقرب ومشاركته.", locNoGeo:"الموقع غير متاح على هذا الجهاز.",
+      dlTitle:"🚗 موقع السائق (مباشر)", dlNote:"يتم التحديث مباشرة أثناء تحرك السائق نحوك.",
+      lblWhen:"🕒 الموعد", whenNow:"الآن", whenLater:"جدولة لاحقًا", whenNowHint:"يصل السائق في أقرب وقت ممكن.", whenSet:"مجدولة في:",
+      nearest:"الأقرب — التالي", away:"~{m} م · ~{min} د منك", nearHint:"فعّل موقعك (الزر بالأعلى) لمعرفة الأقرب إليك وفي طريقك.",
+      inMin:"خلال {n} دقيقة", dueNow:"مستحقة الآن", b_manual:"✋ يدوي",
+      addRide:"إضافة رحلة يدويًا", arfTitle:"إضافة رحلة", arfPickupL:"نقطة الانطلاق", arfDestL:"الوجهة", arfResL:"عدد الركاب", arfWhenL:"الموعد (اتركه فارغًا = الآن)", arfSave:"إضافة الرحلة", arfCancel:"إلغاء", arfErr:"اختر نقطة انطلاق ووجهة مختلفة."
     }
   };
   function t(k){ return (T[lang]&&T[lang][k]!=null)?T[lang][k]:T.en[k]; }
@@ -917,7 +966,7 @@
   var BAND_COLORS=["var(--band1)","var(--band2)","var(--band3)"];
 
   // ---- state ----
-  var state={ pickup:null, destination:null, residents:1, rideType:"private", home:false, driver:false, payMethod:"cash", launch:false };
+  var state={ pickup:null, destination:null, residents:1, rideType:"private", home:false, driver:false, payMethod:"cash", launch:false, scheduledFor:null };
   function $(id){ return document.getElementById(id); }
 
   function parseUrl(){
@@ -954,6 +1003,15 @@
     if($("dlNoteTxt")) $("dlNoteTxt").textContent=t("dlNote");
     if($("bookBackTxt")) $("bookBackTxt").textContent=t("backMain");
     if($("doneBackTxt")) $("doneBackTxt").textContent=t("backBooking");
+    if($("lblWhen")) $("lblWhen").textContent=t("lblWhen");
+    if($("addRideTxt")) $("addRideTxt").textContent=t("addRide");
+    if($("arfTitle")) $("arfTitle").textContent=t("arfTitle");
+    if($("arfPickupL")) $("arfPickupL").textContent=t("arfPickupL");
+    if($("arfDestL")) $("arfDestL").textContent=t("arfDestL");
+    if($("arfResL")) $("arfResL").textContent=t("arfResL");
+    if($("arfWhenL")) $("arfWhenL").textContent=t("arfWhenL");
+    if($("arfSave")) $("arfSave").textContent=t("arfSave");
+    if($("arfCancel")) $("arfCancel").textContent=t("arfCancel");
     setShareLocText();
   }
   function renderPickup(){
@@ -1098,6 +1156,24 @@
       b.innerHTML='<div class="rt-t">'+o[1]+'</div>'; b.addEventListener("click",function(){ state.payMethod=o[0]; renderPay(); }); box.appendChild(b); });
   }
   function renderRes(){ $("resVal").textContent=state.residents; $("minusBtn").disabled=state.residents<=1; $("plusBtn").disabled=state.residents>=Number(cfg.maxRes); }
+  function pad2x(n){ return (n<10?"0":"")+n; }
+  function localDT(offsetMin){ var d=new Date(Date.now()+(offsetMin||0)*60000); return d.getFullYear()+"-"+pad2x(d.getMonth()+1)+"-"+pad2x(d.getDate())+"T"+pad2x(d.getHours())+":"+pad2x(d.getMinutes()); }
+  function fmtSched(v){ try{ var d=new Date(v); if(isNaN(d.getTime())) return String(v); return d.toLocaleString(lang==="ar"?"ar-EG":undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch(e){ return String(v); } }
+  function renderWhen(){
+    var box=$("whenTypes"); if(!box) return; box.innerHTML="";
+    var cur=state.scheduledFor?"later":"now";
+    [["now","⏱️ "+t("whenNow")],["later","📅 "+t("whenLater")]].forEach(function(o){
+      var b=document.createElement("button"); b.className="rt"+(cur===o[0]?" sel":"");
+      b.innerHTML='<div class="rt-t">'+o[1]+'</div>';
+      b.addEventListener("click",function(){
+        if(o[0]==="now"){ state.scheduledFor=null; $("schedTime").classList.add("hidden"); }
+        else { var inp=$("schedTime"); inp.classList.remove("hidden"); if(!inp.value){ inp.min=localDT(0); inp.value=localDT(30); } state.scheduledFor=inp.value; inp.focus(); }
+        renderWhen();
+      });
+      box.appendChild(b);
+    });
+    var hint=$("whenHint"); if(hint) hint.textContent = state.scheduledFor ? (t("whenSet")+" "+fmtSched(state.scheduledFor)) : t("whenNowHint");
+  }
 
   function fareBreakText(f){
     if(state.rideType==="private"){
@@ -1119,7 +1195,7 @@
       $("confirmBtn").disabled=true; $("confirmBtn").classList.remove("ready"); $("confirmHint").textContent=state.pickup?t("hintPick"):t("hintScan"); $("confirmHint").classList.remove("ready");
     }
   }
-  function renderAll(){ applyStaticText(); renderPickup(); renderPickupGrid(); renderDest(); updateMap(); renderRtypes(); renderPay(); renderRes(); updateFare(); }
+  function renderAll(){ applyStaticText(); renderPickup(); renderPickupGrid(); renderDest(); updateMap(); renderRtypes(); renderPay(); renderRes(); renderWhen(); updateFare(); }
 
   // ---- confirm / notify ----
   function pickupLabel(){ return state.home?t("home"):cpName(state.pickup); }
@@ -1146,9 +1222,12 @@
     var f=computeFare(state.rideType,state.residents,state.pickup,state.destination);
     var now=new Date();
     var dateStr=now.getFullYear()+"-"+pad2(now.getMonth()+1)+"-"+pad2(now.getDate());
+    var pc=state.home?null:ptCoord(state.pickup), dc=state.destination?ptCoord(state.destination):null;
     return { kind:"ride", pickupName:pickupLabel(), pickupTag:pickupTag(), pickup:state.home?"home":state.pickup,
       destination:state.destination, destName:cpName(state.destination), residents:state.residents,
       rideType:state.rideType, typeName:typeName(state.rideType),
+      pickupLat:pc?pc[0]:null, pickupLng:pc?pc[1]:null, destLat:dc?dc[0]:null, destLng:dc?dc[1]:null,
+      scheduledFor:state.scheduledFor||null, scheduledStr:state.scheduledFor?fmtSched(state.scheduledFor):"",
       distance:(f.dist==null?null:Math.round(f.dist)), fare:Math.round(f.total*100)/100, fareStr:money(f.total),
       clientPhone:(($("clientPhone")&&$("clientPhone").value)||"").replace(/[^0-9]/g,""), driverPhone:(cfg.phone||""),
       lang:lang, date:dateStr, time:now.toISOString(), timeStr:now.toLocaleString(), timeShort:now.toLocaleTimeString() };
@@ -1204,6 +1283,7 @@
       rowEl(t("rDest"),b.destName+" (#"+b.destination+")")+
       rowEl(t("rType"),b.typeName)+
       rowEl(t("rRes"),String(b.residents))+
+      (b.scheduledFor?rowEl(t("lblWhen"),b.scheduledStr||fmtSched(b.scheduledFor)):"")+
       (b.distance!=null?rowEl(t("rDist"),"~"+b.distance+" m"):"")+
       rowEl(t("rPay"), b.payment==="instapay"?t("pm_instapay"):t("pm_cash"))+
       '<div class="row total"><span class="k">'+t("rTotal")+'</span><span class="v">'+esc(b.fareStr)+'</span></div>';
@@ -1215,7 +1295,7 @@
     $("resendBtn").classList.toggle("hidden", !cfg.waEnabled);
     $("screen-book").classList.add("hidden"); $("screen-done").classList.remove("hidden"); window.scrollTo(0,0);
   }
-  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; resetDriverLoc(); if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); window.scrollTo(0,0); }
+  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; resetDriverLoc(); if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; state.scheduledFor=null; if($("schedTime")){ $("schedTime").value=""; $("schedTime").classList.add("hidden"); } if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); window.scrollTo(0,0); }
 
   // ---- admin ----
   var adminAuthedMem=false;
@@ -1527,19 +1607,29 @@
     if(dMap){ if(dCar){ try{dMap.removeLayer(dCar);}catch(e){} dCar=null; } if(dPickMk){ try{dPickMk.unbindTooltip();dMap.removeLayer(dPickMk);}catch(e){} dPickMk=null; } }
     var c=$("driverLocCard"); if(c) c.classList.add("hidden");
   }
-  // ---- driver shares live location (driver dashboard) ----
-  var locWatch=null, lastLocPub=0;
+  // ---- driver shares live location + finds nearest waiting resident (driver dashboard) ----
+  var locWatch=null, lastLocPub=0, driverPos=null;
   function setShareLocText(){ var s=$("shareLocTxt"); if(s) s.textContent=(locWatch!=null)?t("locSharing"):t("locShare"); var b=$("shareLocBtn"); if(b) b.classList.toggle("on",locWatch!=null); }
   function toggleShareLoc(){
     if(locWatch!=null){ stopShareLoc(); return; }
     if(!navigator.geolocation){ alert(t("locNoGeo")); return; }
     locWatch=navigator.geolocation.watchPosition(function(p){
+      driverPos={lat:p.coords.latitude, lng:p.coords.longitude};   // used to rank nearest residents
+      if(state.driver) renderDash();
       var now=Date.now(); if(now-lastLocPub<4000) return; lastLocPub=now;
-      publish({kind:"driverloc", lat:p.coords.latitude, lng:p.coords.longitude, ts:now});
+      publish({kind:"driverloc", lat:driverPos.lat, lng:driverPos.lng, ts:now});  // share with the waiting rider
     }, function(){ stopShareLoc(); alert(t("locDenied")); }, {enableHighAccuracy:true, maximumAge:4000, timeout:20000});
     setShareLocText();
   }
-  function stopShareLoc(){ if(locWatch!=null){ try{navigator.geolocation.clearWatch(locWatch);}catch(e){} } locWatch=null; setShareLocText(); }
+  function stopShareLoc(){ if(locWatch!=null){ try{navigator.geolocation.clearWatch(locWatch);}catch(e){} } locWatch=null; driverPos=null; setShareLocText(); if(state.driver) renderDash(); }
+  // distance (m) from the driver to a ride's pickup, going the shorter way around the loop (the cart drives both directions)
+  function driverDistTo(ride){
+    if(!driverPos || !ride || ride.pickup==="home" || !ride.pickup) return Infinity;
+    var best=Infinity, c0=null;
+    for(var i=1;i<=N;i++){ var d=haversine([driverPos.lat,driverPos.lng], ptCoord(i)); if(d<best){ best=d; c0=i; } }
+    var loop=rideDistance(c0, ride.pickup);
+    return best + (loop==null?0:loop);
+  }
 
   // ---- driver dashboard ----
   var rides={}, order=[], dashReady=false, dashStream=null;
@@ -1582,25 +1672,108 @@
     webhookPost(Object.assign({},r,{ kind:"ride", event:"done", note:note }));  // records as revenue (money received)
     delete rides[id]; order=order.filter(function(x){ return x!==id; }); renderDash();
   }
+  function dueMs(r, nowMs){ if(r && r.scheduledFor){ var t2=Date.parse(r.scheduledFor); if(!isNaN(t2)) return t2; } return nowMs; }
   function renderDash(){
     var box=$("dashList");
     if(!order.length){ box.innerHTML='<div class="dash-empty">'+esc(t("noRides"))+'</div>'; return; }
-    box.innerHTML=order.map(function(id){
+    var nowMs=Date.now();
+    var ids=order.slice(), distOf={}, nearestId=null;
+    ids.forEach(function(id){ distOf[id]=driverPos?driverDistTo(rides[id]):Infinity; });
+    // Order by when each ride is due (scheduled time, or now) so the driver isn't late; nearest breaks ties.
+    ids.sort(function(a,b){ var d=dueMs(rides[a],nowMs)-dueMs(rides[b],nowMs); if(d) return d; return distOf[a]-distOf[b]; });
+    if(driverPos){ ids.forEach(function(id){ if(isFinite(distOf[id]) && (nearestId===null || distOf[id]<distOf[nearestId])) nearestId=id; }); }
+    var hint = driverPos ? '' : '<div class="dash-hint">'+esc(t("nearHint"))+'</div>';
+    box.innerHTML = hint + ids.map(function(id){
       var r=rides[id];
       var payBadge=r.payMethod==="cash"?'<span class="badge cash">'+esc(t("b_cash"))+'</span>':(r.payMethod==="instapay"?'<span class="badge pay">'+esc(t("b_paid"))+'</span>':'');
+      var manualBadge=r.source==="manual"?'<span class="badge manual">'+esc(t("b_manual"))+'</span>':'';
       var dist=(r.distance!=null)?(" · ~"+r.distance+" m"):"";
       // render in the DRIVER's language (recompute from indices), not the rider's stored strings
       var pName=(r.pickup==="home")?t("home"):(r.pickup?cpName(r.pickup):(r.pickupName||""));
       var dName=r.destination?cpName(r.destination):(r.destName||"");
       var tName=r.rideType?typeName(r.rideType):(r.typeName||"");
-      return '<div class="dcard s-new"><div class="d-top"><div>'
+      var near="";
+      if(driverPos && isFinite(distOf[id])){
+        var m=Math.round(distOf[id]), mins=Math.max(1,Math.round(m/200));   // cart ~12 km/h ≈ 200 m/min
+        near='<div class="d-near">'+(id===nearestId?('⭐ '+esc(t("nearest"))+' · '):'')+esc(t("away").replace("{m}",m).replace("{min}",mins))+'</div>';
+      }
+      var sched="";
+      if(r.scheduledFor){
+        var toDue=Math.round((Date.parse(r.scheduledFor)-nowMs)/60000);
+        var urgent = toDue<=5;
+        var when = toDue>0 ? esc(t("inMin").replace("{n}",toDue)) : ('⚠️ '+esc(t("dueNow")));
+        sched='<div class="sched-badge'+(urgent?' urgent':'')+'">📅 '+esc(r.scheduledStr||fmtSched(r.scheduledFor))+' · '+when+'</div>';
+      }
+      return '<div class="dcard s-new'+(id===nearestId?' nearest':'')+'"><div class="d-top"><div>'
         +'<div class="d-route">'+esc(pName)+' → '+esc(dName)+'</div>'
         +'<div class="d-meta">'+esc(tName)+' · '+r.residents+'👥'+dist+' · '+esc(r.timeShort||"")+'</div>'
-        +'<div class="d-badges">'+payBadge+'</div></div>'
+        +sched+near
+        +'<div class="d-badges">'+payBadge+manualBadge+'</div></div>'
         +'<div class="d-fare">'+esc(r.fare!=null?money(r.fare):(r.fareStr||""))+'</div></div>'
         +'<div class="d-actions"><button data-id="'+id+'">'+esc(t("b_done"))+'</button></div></div>';
     }).join("");
     box.querySelectorAll(".d-actions button").forEach(function(b){ b.addEventListener("click",function(){ driverDone(b.getAttribute("data-id")); }); });
+    renderDriverMap(ids, nearestId);
+  }
+  // ---- driver fleet map: pending pickups + driver + nearest highlighted ----
+  var fMap=null, fMk=[], fLine=null, fCar=null;
+  function renderDriverMap(ids, nearestId){
+    var box=$("driverFleetMap"); if(!box) return;
+    var pts=(ids||[]).filter(function(id){ var r=rides[id]; return r && r.pickup && r.pickup!=="home"; });
+    if(!pts.length && !driverPos){ box.classList.add("hidden"); return; }
+    box.classList.remove("hidden");
+    loadLeaflet(function(){
+      if(!window.L) return;
+      if(!fMap){ fMap=L.map('driverFleetMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(fMap); }
+      fMk.forEach(function(m){ try{fMap.removeLayer(m);}catch(e){} }); fMk=[];
+      if(fLine){ fMap.removeLayer(fLine); fLine=null; }
+      if(fCar){ fMap.removeLayer(fCar); fCar=null; }
+      var bounds=[];
+      pts.forEach(function(id){ var r=rides[id], c=ptCoord(r.pickup), isN=(id===nearestId);
+        var mk=L.marker(c,{icon:isN?bPinIcon(r.pickup,"pk"):bSmallIcon(r.pickup),zIndexOffset:isN?1000:0}).addTo(fMap);
+        mk.bindTooltip(cpName(r.pickup),{direction:"top"}); fMk.push(mk); bounds.push(c);
+      });
+      if(driverPos){ var dc=[driverPos.lat,driverPos.lng];
+        fCar=L.marker(dc,{icon:L.divIcon({className:"gg-pin gg-pin-lg car",html:"🚗",iconSize:[34,34],iconAnchor:[17,17]}),zIndexOffset:1200}).addTo(fMap); bounds.push(dc);
+        if(nearestId && rides[nearestId] && rides[nearestId].pickup!=="home"){
+          var gc=getComputedStyle(document.documentElement).getPropertyValue("--green").trim()||"#1f9a48";
+          fLine=L.polyline([dc, ptCoord(rides[nearestId].pickup)],{color:gc,weight:4,opacity:.9,dashArray:"1 10",lineCap:"round"}).addTo(fMap);
+        }
+      }
+      if(bounds.length>1) fMap.fitBounds(L.latLngBounds(bounds),{padding:[36,36],maxZoom:17});
+      else if(bounds.length===1) fMap.setView(bounds[0],16);
+      setTimeout(function(){ try{ fMap.invalidateSize(); }catch(e){} },160);
+    });
+  }
+  // ---- driver adds a ride manually (walk-up resident) ----
+  function fillArfSelects(){
+    var pk=$("arfPickup"), ds=$("arfDest"); if(!pk||!ds) return;
+    var opts=""; for(var i=1;i<=N;i++){ opts+='<option value="'+i+'">'+esc(i+" · "+cpName(i))+'</option>'; }
+    pk.innerHTML=opts; ds.innerHTML=opts; pk.value="1"; ds.value=String(Math.min(2,N));
+  }
+  function toggleAddRide(){
+    var f=$("addRideForm"); if(!f) return;
+    if(f.classList.contains("hidden")){ fillArfSelects(); $("arfRes").value="1"; $("arfWhen").value=""; $("arfWhen").min=localDT(0); f.classList.remove("hidden"); }
+    else f.classList.add("hidden");
+  }
+  function saveManualRide(){
+    var pk=parseInt($("arfPickup").value,10), ds=parseInt($("arfDest").value,10), res=Math.max(1,parseInt($("arfRes").value,10)||1);
+    if(!pk||!ds||pk===ds){ alert(t("arfErr")); return; }
+    var rt=res>1?"mixed":"private", f=computeFare(rt,res,pk,ds), when=$("arfWhen").value||null, now=new Date(), id=newId();
+    var pc=ptCoord(pk), dc=ptCoord(ds);
+    var ride={ id:id, kind:"ride", event:"booking", source:"manual",
+      pickup:pk, destination:ds, pickupName:cpName(pk), destName:cpName(ds), residents:res, rideType:rt, typeName:typeName(rt),
+      pickupLat:pc[0], pickupLng:pc[1], destLat:dc[0], destLng:dc[1],
+      scheduledFor:when, scheduledStr:when?fmtSched(when):"",
+      distance:(f.dist==null?null:Math.round(f.dist)), fare:Math.round(f.total*100)/100, fareStr:money(f.total),
+      payment:"cash", clientPhone:"", driverPhone:(cfg.phone||""), lang:lang,
+      date:now.getFullYear()+"-"+pad2(now.getMonth()+1)+"-"+pad2(now.getDate()), time:now.toISOString(), timeStr:now.toLocaleString(), timeShort:now.toLocaleTimeString() };
+    rides[id]=Object.assign({},ride,{status:"new",payMethod:"cash"});
+    if(order.indexOf(id)<0) order.unshift(id);
+    webhookPost(ride);   // log to Google Sheet / n8n
+    $("addRideForm").classList.add("hidden");
+    renderDash();
   }
   function beep(){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination); o.type="sine"; o.frequency.value=880; g.gain.value=.12; o.start(); setTimeout(function(){o.frequency.value=1175;},120); setTimeout(function(){o.stop();a.close();},260); }catch(e){} }
 
@@ -1632,6 +1805,10 @@
     $("bookBack").addEventListener("click",showHome);
     $("doneBack").addEventListener("click",resetBooking);
     $("shareLocBtn").addEventListener("click",toggleShareLoc);
+    $("addRideBtn").addEventListener("click",toggleAddRide);
+    $("arfSave").addEventListener("click",saveManualRide);
+    $("arfCancel").addEventListener("click",function(){ $("addRideForm").classList.add("hidden"); });
+    if($("schedTime")) $("schedTime").addEventListener("change",function(){ state.scheduledFor=this.value||null; renderWhen(); });
     $("resendBtn").addEventListener("click",function(){ if(lastBooking) notifyDriver(lastBooking); });
     $("gearBtn").addEventListener("click",function(){ requireAdmin(openAdmin); });
     if(isAdminAuthed()) $("gearBtn").classList.remove("hidden");
@@ -1648,6 +1825,10 @@
     $("copyAutoReply").addEventListener("click",function(){ var b=$("copyAutoReply"); navigator.clipboard&&navigator.clipboard.writeText($("autoReply").value); var o=b.textContent; b.textContent="✓ Copied"; setTimeout(function(){ b.textContent=o; },1400); });
     $("exportLog").addEventListener("click",exportCsv);
     $("clearLog").addEventListener("click",function(){ if(confirm("Clear all booking history on this device?")){ lsDel(LS_LOG); renderLog(); } });
+    // Offline support: cache the app + map tiles after first online load (needs HTTPS or localhost).
+    if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")){
+      try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(e){}
+    }
   }
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",init); else init();
 })();
