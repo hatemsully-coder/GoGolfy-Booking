@@ -651,10 +651,11 @@
         </div>
         <div class="field">
           <label>Pick-up points & route</label>
-          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Lines are always <b>straight</b>; tap a <b>＋</b> to add a corner, then drag it — add as many corners as you like to shape the line with straight segments (e.g. around a square). Distances recalculate automatically. The last point loops back to the first.</div>
+          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Tap a <b>＋</b> to add a road corner and drag it onto the road. Routes between pick-up points <b>follow the sequence</b> through the in-between points (e.g. 1→2→…→11), in either direction; the <b>hub</b> point goes direct to/from any point. Distances recalculate automatically.</div>
           <button type="button" class="save-btn" id="addPoint" style="margin:0 0 10px;background:var(--green-dark);">➕ Add pick-up point</button>
           <div id="routeMap"></div>
           <textarea id="cfgLabels" rows="6" readonly style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.82rem;font-family:monospace;background:var(--green-light);color:var(--ink);"></textarea>
+          <div class="field" style="margin-top:10px;"><label>🏢 Hub / depot point number (goes direct to any point — not via the sequence)</label><input type="number" id="cfgHub" min="1" max="99" /></div>
         </div>
 
         <div class="sec-title">Private — per person, by ride distance (EGP)</div>
@@ -816,6 +817,7 @@
     priv:[20,25,30],         // Private per person by distance band
     mix:[25,25,20],          // Group ride per person: 2 people→25, 3+→20 (flat, any destination)
     prem:[50,40,30],         // Premium per person for 1 / 2 / 3+
+    hub:12,                  // hub/depot point: goes direct to/from any point; other points follow the sequence
     baseUrl:"https://gogolfy.net/",               // your domain (used for QR codes & driver link)
     payLink:"https://ipn.eg/S/hatemsully/instapay/4T6VhV",
     channel:"gogolfy-darmasr-andalous-7K3p9Qx2",  // shared live channel (same on all devices)
@@ -949,9 +951,25 @@
   function cur(){ return (cfg.currency&&cfg.currency.trim())||t("curr"); }
   function comp(){ return (cfg.compound&&cfg.compound.trim())||t("compound"); }
   function money(v){ var n=Math.round(v*100)/100; return lang==="ar"?(n+" "+cur()):(cur()+" "+n); }
+  function iso(s){ return lang==="ar" ? ("⁦"+s+"⁩") : s; }   // isolate Latin/number runs so RTL doesn't scramble them
 
   // ---- distance + fares ----
-  function rideDistance(posA,posB){ if(!posA||!posB||posA==="home"||posB==="home") return null; var p=routePos(); var d=Math.abs(p[posA]-p[posB]); return Math.min(d, p._total-d); }
+  function hubIdx(){ var h=parseInt(cfg.hub,10); return (h>=1&&h<=N)?h:N; }                 // hub/depot point (default last = 12)
+  function seqList(){ var h=hubIdx(), a=[]; for(var i=1;i<=N;i++){ if(i!==h) a.push(i); } return a; }  // pickup points in sequence, hub excluded
+  function havM(a,b){ return haversine(ptCoord(a),ptCoord(b)); }
+  function segDist(p,q){ return (q===p+1)?segOf(p):(havM(p,q)*1.25); }                       // road distance p→q (uses tuned seg when adjacent)
+  // Pickup-to-pickup follows the SEQUENCE through the in-between points (never shortcut through the hub).
+  // The hub (12) goes DIRECT to/from any point. Works for every pair, both directions.
+  function rideDistance(posA,posB){
+    if(!posA||!posB||posA==="home"||posB==="home") return null;
+    var h=hubIdx();
+    if(posA===h || posB===h) return Math.round(havM(posA,posB)*1.25);                        // hub ↔ point: direct
+    var seq=seqList(), ia=seq.indexOf(posA), ib=seq.indexOf(posB);
+    if(ia<0||ib<0) return Math.round(havM(posA,posB)*1.25);
+    var lo=Math.min(ia,ib), hi=Math.max(ia,ib), d=0;
+    for(var k=lo;k<hi;k++){ d+=segDist(seq[k],seq[k+1]); }                                   // sum along the sequence
+    return Math.round(d);
+  }
   function tier(res){ return res<=1?0:(res===2?1:2); }
   // Private distance band: ≤T0 → 0, T0–T1 → 1, ≥T1 → 2
   function privBand(d){ if(d==null) return 2; if(d<=cfg.privT[0]) return 0; if(d<cfg.privT[1]) return 1; return 2; }
@@ -1042,20 +1060,35 @@
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
-  var bMap=null, bMarkers=[], bLine=null, bAllMk=[], bLoop=null;
+  var bMap=null, bMarkers=[], bLine=null, bAllMk=[], bLoop=null, bMapSig=null;
+  var GG_GREEN=(getComputedStyle(document.documentElement).getPropertyValue('--green')||'').trim()||'#1f9a48';
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
   function bSmallIcon(txt){ return L.divIcon({className:'gg-pin gg-pin-sm', html:String(txt), iconSize:[22,22], iconAnchor:[11,11]}); }
   function loopCoordsAll(){ var c=[]; for(var i=1;i<=N;i++){ c.push(ptCoord(i)); viaOf(i).forEach(function(v){ c.push([v[0],v[1]]); }); } if(c.length>1) c.push(c[0]); return c; }
+  // Map route: between pick-up points, follow the SEQUENCE through the in-between points (e.g. 1→2→…→11,
+  // or 11→10→9→…) — never shortcut through the hub. The hub (12) draws a direct line to/from any point.
   function routeArc(pi,di){
-    var p=routePos(), fwd=((p[di]-p[pi])+p._total)%p._total, coords=[], k=pi; coords.push(ptCoord(k));
-    if(fwd<=p._total-fwd){ while(k!==di){ viaOf(k).forEach(function(v){coords.push([v[0],v[1]]);}); k=k%N+1; coords.push(ptCoord(k)); } }
-    else { while(k!==di){ var prev=(k-2+N)%N+1; viaOf(prev).slice().reverse().forEach(function(v){coords.push([v[0],v[1]]);}); k=prev; coords.push(ptCoord(k)); } }
+    var h=hubIdx();
+    if(pi===h || di===h) return [ptCoord(pi), ptCoord(di)];                 // hub ↔ point: direct line
+    var seq=seqList(), ia=seq.indexOf(pi), ib=seq.indexOf(di);
+    if(ia<0||ib<0) return [ptCoord(pi), ptCoord(di)];
+    var lo=Math.min(ia,ib), hi=Math.max(ia,ib), coords=[];
+    for(var k=lo;k<=hi;k++){
+      coords.push(ptCoord(seq[k]));
+      if(k<hi && seq[k+1]===seq[k]+1){ viaOf(seq[k]).forEach(function(v){ coords.push([v[0],v[1]]); }); }
+    }
+    if(ia>ib) coords.reverse();                                            // present from pickup → destination
     return coords;
   }
   function updateMap(){
     var card=$("mapCard"); if(!card) return;
-    if(state.home || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); return; }
+    if(state.home || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); bMapSig=null; return; }
     card.classList.remove("hidden");
+    // Only rebuild when something map-relevant changed (pickup/destination/points/language) — keeps
+    // residents/payment/schedule changes from thrashing the map, so the dashboard stays smooth.
+    var sig=(state.pickup||"-")+"|"+(state.destination||"-")+"|"+N+"|"+lang;
+    if(bMap && sig===bMapSig){ setTimeout(function(){ try{ bMap.invalidateSize(); }catch(e){} },60); return; }
+    bMapSig=sig;
     loadLeaflet(function(){
       if(!window.L) return;
       if(!bMap){
@@ -1082,24 +1115,24 @@
         bAllMk.push(sm);
       })(j);}
       var pc=state.pickup?ptCoord(state.pickup):null, dc=state.destination?ptCoord(state.destination):null;
-      // actual route along the loop (the shorter way around)
-      if(state.pickup&&state.destination){
-        var gc=getComputedStyle(document.documentElement).getPropertyValue('--green').trim()||'#1f9a48';
-        var arc=routeArc(state.pickup,state.destination);
-        var casing=L.polyline(arc,{color:'#ffffff',weight:8,opacity:.9,lineCap:'round',lineJoin:'round'});
-        var path=L.polyline(arc,{color:gc,weight:5,opacity:1,lineCap:'round',lineJoin:'round'});
-        bLine=L.layerGroup([casing,path]).addTo(bMap);
+      // route follows the pick-point SEQUENCE between non-hub points; the hub goes direct (see routeArc).
+      if(pc&&dc){
+        var gc=GG_GREEN;
+        var seg=routeArc(state.pickup,state.destination);
+        var casing=L.polyline(seg,{color:'#ffffff',weight:8,opacity:.9,lineCap:'round',lineJoin:'round'});
+        var pathL=L.polyline(seg,{color:gc,weight:5,opacity:1,lineCap:'round',lineJoin:'round'});
+        bLine=L.layerGroup([casing,pathL]).addTo(bMap);
       }
       if(pc){ var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk'),zIndexOffset:1000}).addTo(bMap);
         pm.bindTooltip("📍 "+cpName(state.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); bMarkers.push(pm); }
       if(dc){ var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds'),zIndexOffset:1000}).addTo(bMap);
         dm.bindTooltip("🎯 "+cpName(state.destination),{permanent:true,direction:'bottom',offset:[0,19],className:'gg-tip gg-tip-ds'}); bMarkers.push(dm); }
-      // fixed, consistent framing — always show the whole compound
-      bMap.fitBounds(L.latLngBounds(all),{padding:[34,34]});
+      // fixed, consistent framing — always show the whole compound (single deferred pass after the
+      // container settles, to avoid a double reframe)
       setTimeout(function(){ try{ bMap.invalidateSize(); bMap.fitBounds(L.latLngBounds(all),{padding:[34,34]}); }catch(e){} },160);
       var cap=$("bookMapCap"); if(cap){ var h="";
-        if(pc) h+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</span>';
-        if(dc) h+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</span>';
+        if(pc) h+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <bdi><b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</bdi></span>';
+        if(dc) h+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <bdi><b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</bdi></span>';
         if(!dc) h+='<span class="lg" style="color:var(--muted)">'+esc(t("mapTapHint"))+'</span>';
         cap.innerHTML=h; }
     });
@@ -1177,10 +1210,10 @@
 
   function fareBreakText(f){
     if(state.rideType==="private"){
-      var dd=(f.dist==null)?"":('<span class="band-dot" style="background:'+BAND_COLORS[f.bandIdx]+'"></span>≈ '+Math.round(f.dist)+' m · ');
-      return dd+state.residents+" × "+money(f.each)+" "+t("each");
+      var dd=(f.dist==null)?"":('<span class="band-dot" style="background:'+BAND_COLORS[f.bandIdx]+'"></span>'+iso('≈ '+Math.round(f.dist)+' m')+' · ');
+      return dd+iso(state.residents+" × "+money(f.each))+" "+t("each");
     }
-    return typeName(state.rideType)+" · "+state.residents+" × "+money(f.each)+" "+t("each");
+    return typeName(state.rideType)+" · "+iso(state.residents+" × "+money(f.each))+" "+t("each");
   }
   function updateFare(){
     var ready=(state.pickup&&state.destination);
@@ -1467,6 +1500,7 @@
     $("storeNote").textContent=storageOK()?"Settings save on this device.":"⚠ This browser is blocking storage (private mode / opened from disk). Settings work for now but won't persist after closing — host the app to make them stick.";
     $("storeNote").className="mini-note"+(storageOK()?"":" warn-note");
     $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true;
+    if($("cfgHub")) $("cfgHub").value=cfg.hub||12;
     var rt=(cfg.route&&cfg.route.length)?cfg.route:CHECKPOINTS.map(function(c,i){ return {name:c.en, seg:DEFAULT_SEG[i]}; });
     $("cfgLabels").value=rt.map(function(r){ return r.name+" | "+r.seg; }).join("\n");
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
@@ -1484,6 +1518,7 @@
   function saveSettings(){
     cfg.phone=$("cfgPhone").value.replace(/[^0-9]/g,"");
     cfg.maxRes=Math.max(1,parseInt($("cfgMaxRes").value,10)||6);
+    if($("cfgHub")){ var hb=parseInt($("cfgHub").value,10); cfg.hub=(hb>=1)?hb:12; }
     cfg.adminPin=$("cfgPin").value.trim()||"1234";
     cfg.homeEnabled=$("cfgHome").checked;
     cfg.waEnabled=$("cfgWa").checked;
