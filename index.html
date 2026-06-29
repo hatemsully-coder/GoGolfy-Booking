@@ -327,7 +327,14 @@
   .fare-row:last-child{border-bottom:none;}
   .fare-row .muted{color:var(--muted);font-weight:700;}
   .home-wa{display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;font-weight:800;
-    padding:13px;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(37,211,102,.25);}
+    padding:14px;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(37,211,102,.25);margin-top:6px;}
+  .home-help{margin-top:12px;text-align:center;}
+  .home-help-t{font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;}
+  .home-help-row{display:flex;gap:8px;}
+  .help-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border-radius:12px;font-weight:800;font-size:.86rem;text-decoration:none;border:1.5px solid var(--line);}
+  .help-btn.wa{background:#e9f7ef;color:#0e6e37;border-color:#bfe6cd;}
+  .help-btn.call{background:#eaf1fb;color:#1f4e8c;border-color:#c6d8f2;}
+  .help-btn:active{filter:brightness(.96);}
 
   /* reports / analytics */
   .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 14px;}
@@ -593,6 +600,13 @@
           <div id="homeFares"></div>
         </div>
         <a class="home-wa" id="homeWa" target="_blank" rel="noopener"></a>
+        <div class="home-help">
+          <div class="home-help-t" id="homeHelpT"></div>
+          <div class="home-help-row">
+            <a class="help-btn wa" id="homeWaHelp" target="_blank" rel="noopener"></a>
+            <a class="help-btn call" id="homeCall"></a>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -912,7 +926,7 @@
   var RIDE_TYPES=["private","mixed","premium"];
 
   var DEFAULTS={
-    phone:"201094000115", maxRes:6,
+    phone:"201099002282", maxRes:6,             // official GoGolfy number (0109 900 2282)
     privT:[600,900],         // Private distance thresholds (m): ≤600 / 600–900 / ≥900
     priv:[20,25,30],         // Private per person by distance band
     mix:[25,25,20],          // Group ride per person: 2 people→25, 3+→20 (flat, any destination)
@@ -941,6 +955,7 @@
   var cfg=loadCfg();
   // one-time migration to the 14-point Andalous Phase-2 layout (replaces any saved 12-point route; keeps fares/phone)
   if(cfg.routeVer!==3){ cfg.route=[]; cfg.hub=14; cfg.routeVer=3; saveCfg(); }   // v3: real OSM-anchored coordinates
+  if(cfg.phoneVer!==1){ cfg.phone="201099002282"; cfg.phoneVer=1; saveCfg(); }   // official GoGolfy number — set once, does NOT touch saved checkpoints
   N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
   var lang=lsGet(LS_LANG)||"ar";
 
@@ -978,7 +993,8 @@
       hs1t:"1 · Choose your pick-up point", hs1s:"Scan the QR at your spot, or pick it from the list.",
       hs2t:"2 · Destination & payment", hs2s:"Pick where to go, the ride type, and InstaPay or Cash.",
       hs3t:"3 · A driver is on the way", hs3s:"The driver is alerted instantly — sit back and relax.",
-      homeFaresT:"Ride types & fares", homeWa:"💬 Contact us on WhatsApp",
+      homeFaresT:"Ride types & fares", homeWa:"💬 Book on WhatsApp",
+      helpTitle:"Complaints & Suggestions", waHelp:"💬 WhatsApp", waBookMsg:"Hi GoGolfy 🛺 — I'd like to book a ride.", waHelpMsg:"Hi GoGolfy — I have a complaint / suggestion:",
       m_pickup:"Pickup", m_drop:"Drop-off", m_res:"Residents", m_type:"Ride type", m_dist:"Distance", m_fare:"Fare",
       pay:"💳 Pay now (InstaPay)", payTitle:"How would you like to pay?",
       cash:"💵 Pay cash to driver", paySel:"✓ InstaPay opened", cashSel:"✓ Cash selected — pay the driver",
@@ -1030,7 +1046,8 @@
       hs1t:"١ · اختر نقطة انطلاقك", hs1s:"امسح رمز QR في مكانك، أو اخترها من القائمة.",
       hs2t:"٢ · الوجهة والدفع", hs2s:"حدد وجهتك ونوع الرحلة وطريقة الدفع (إنستاباي أو نقدًا).",
       hs3t:"٣ · السائق في الطريق", hs3s:"يصل الإخطار للسائق فورًا — استرخِ وانتظر.",
-      homeFaresT:"أنواع الرحلات والأسعار", homeWa:"💬 تواصل معنا على واتساب",
+      homeFaresT:"أنواع الرحلات والأسعار", homeWa:"💬 احجز عبر واتساب",
+      helpTitle:"شكاوى واقتراحات", waHelp:"💬 واتساب", waBookMsg:"مرحبًا GoGolfy 🛺 — أريد حجز رحلة.", waHelpMsg:"مرحبًا GoGolfy — لديّ شكوى / اقتراح:",
       m_pickup:"الانطلاق", m_drop:"الوجهة", m_res:"الركاب", m_type:"نوع الرحلة", m_dist:"المسافة", m_fare:"الأجرة",
       pay:"💳 ادفع الآن (إنستاباي)", payTitle:"كيف تحب أن تدفع؟",
       cash:"💵 الدفع نقدًا للسائق", paySel:"✓ تم فتح إنستاباي", cashSel:"✓ تم اختيار النقد — ادفع للسائق",
@@ -1486,7 +1503,13 @@
     rows.push([typeName("mixed"), cfg.mix[1]+"/"+cfg.mix[2]+" "+u]);
     if(cfg.homeEnabled!==false) rows.push([typeName("premium"), cfg.prem[0]+"/"+cfg.prem[1]+"/"+cfg.prem[2]+" "+u]);
     $("homeFares").innerHTML=rows.map(function(r){ return '<div class="fare-row"><span>'+esc(r[0])+'</span><span class="muted">'+esc(r[1])+'</span></div>'; }).join("");
-    var wa=$("homeWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("homeWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
+    var num=(cfg.phone||"").replace(/[^0-9]/g,"");                                  // intl digits, e.g. 201099002282
+    var loc=(num.indexOf("20")===0)?("0"+num.slice(2)):num;                          // local, e.g. 01099002282
+    var pretty=(loc.length>=11)?(loc.slice(0,3)+" "+loc.slice(3,7)+" "+loc.slice(7)):loc;  // 010 9900 2282
+    var wa=$("homeWa"); if(wa){ if(num){ wa.style.display=""; wa.textContent=t("homeWa"); wa.href="https://wa.me/"+num+"?text="+encodeURIComponent(t("waBookMsg")); } else wa.style.display="none"; }
+    if($("homeHelpT")) $("homeHelpT").textContent=t("helpTitle");
+    var wh=$("homeWaHelp"); if(wh){ if(num){ wh.style.display=""; wh.textContent=t("waHelp"); wh.href="https://wa.me/"+num+"?text="+encodeURIComponent(t("waHelpMsg")); } else wh.style.display="none"; }
+    var cl=$("homeCall"); if(cl){ if(num){ cl.style.display=""; cl.textContent="📞 "+pretty; cl.href="tel:+"+num; } else cl.style.display="none"; }
   }
   function closeAdmin(){ $("adminOverlay").classList.add("hidden"); }
   function switchTab(name){
@@ -1671,7 +1694,7 @@
     routeEdit.forEach(function(r,idx){
       var m=L.marker([r.lat,r.lng],{draggable:true,zIndexOffset:1000,icon:L.divIcon({className:'',html:'<div class="gg-pin pk">'+(idx+1)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(rMap);
       m.on('drag',function(){ var ll=m.getLatLng(); routeEdit[idx].lat=ll.lat; routeEdit[idx].lng=ll.lng; drawRouteLine(); });
-      m.on('dragend',function(){ refreshRoute(); });
+      m.on('dragend',function(){ var n=routeEdit.length; routeEdit[idx].man=false; routeEdit[(idx-1+n)%n].man=false; refreshRoute(); });   // moving a checkpoint auto-recomputes its two touching distances
       m.on('click',function(){ openPointPopup(idx,m); });
       m.bindTooltip((idx+1)+" · "+r.name,{direction:'top'});
       rMarkers.push(m);
@@ -1682,15 +1705,15 @@
       if(cur.kind==='via'){ (function(seg,vi){
         var vm=L.marker(cur.ll,{draggable:true,zIndexOffset:600,icon:L.divIcon({className:'',html:'<div class="gg-bend"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(rMap);
         vm.on('drag',function(){ var ll=vm.getLatLng(); routeEdit[seg].via[vi]=[ll.lat,ll.lng]; drawRouteLine(); });
-        vm.on('dragend',function(){ refreshRoute(); });
-        vm.on('click',function(){ routeEdit[seg].via.splice(vi,1); refreshRoute(); });
+        vm.on('dragend',function(){ routeEdit[seg].man=false; refreshRoute(); });   // moving a road corner auto-recomputes that segment
+        vm.on('click',function(){ routeEdit[seg].via.splice(vi,1); routeEdit[seg].man=false; refreshRoute(); });
         vm.bindTooltip("Corner — drag it to shape the line · tap to remove",{direction:'top'});
         rViaMk.push(vm);
       })(cur.i,cur.vi); }
       (function(seg,ins,a,b){
         var mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
         var am=L.marker(mid,{zIndexOffset:300,icon:L.divIcon({className:'',html:'<div class="gg-add">+</div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(rMap);
-        am.on('click',function(){ routeEdit[seg].via=routeEdit[seg].via||[]; routeEdit[seg].via.splice(ins,0,mid); refreshRoute(); });
+        am.on('click',function(){ routeEdit[seg].via=routeEdit[seg].via||[]; routeEdit[seg].via.splice(ins,0,mid); routeEdit[seg].man=false; refreshRoute(); });
         am.bindTooltip("Add a corner (straight segment)",{direction:'top'});
         rAddMk.push(am);
       })(cur.i,(cur.kind==='pt'?0:cur.vi+1),cur.ll,nxt.ll);
@@ -1709,7 +1732,8 @@
   }
   function addRoutePoint(){
     if(!rMap){ return; } var c=rMap.getCenter();
-    routeEdit.push({ name:"New pick-up point", lat:c.lat, lng:c.lng, seg:0, via:[] });
+    var prev=routeEdit.length-1; if(prev>=0) routeEdit[prev].man=false;   // recompute the edge into the new point
+    routeEdit.push({ name:"New pick-up point", lat:c.lat, lng:c.lng, seg:0, man:false, via:[] });
     refreshRoute();
     var idx=routeEdit.length-1; if(rMarkers[idx]) openPointPopup(idx,rMarkers[idx]);
   }
