@@ -1529,10 +1529,11 @@
   function isAdminAuthed(){ try{ return sessionStorage.getItem("gg_admin")==="1"; }catch(e){ return adminAuthedMem; } }
   function setAdminAuthed(){ try{ sessionStorage.setItem("gg_admin","1"); }catch(e){ adminAuthedMem=true; } $("gearBtn").classList.remove("hidden"); }
   function requireAdmin(cb){
-    if(isAdminAuthed()){ $("gearBtn").classList.remove("hidden"); cb(); return; }
+    // Always ask for the PIN — every time the admin panel is opened (no session bypass).
     var pin=prompt(t("pinPrompt"));
-    if(pin===null) return;
-    if(String(pin)===String(cfg.adminPin||"")){ setAdminAuthed(); cb(); } else alert(t("pinWrong"));
+    if(pin===null) return;                                   // cancelled
+    if(String(pin)===String(cfg.adminPin||"1234")){ setAdminAuthed(); cb(); }   // correct → open
+    else alert(t("pinWrong"));                                // wrong → never opens
   }
   function openAdmin(){ fillSettings(); $("adminOverlay").classList.remove("hidden"); setTimeout(openRouteMap,180); }
   function previewAllowed(){ try{ var q=new URLSearchParams(location.search); if(q.get("preview")==="1") sessionStorage.setItem("gg_preview","1"); return sessionStorage.getItem("gg_preview")==="1"; }catch(e){ return false; } }
@@ -1965,7 +1966,10 @@
   }
   function resetDriverLoc(){ liveCar=null; var box=$("driverMap"); if(box) box.innerHTML=""; var c=$("driverLocCard"); if(c) c.classList.add("hidden"); }
   // ---- driver shares live location + finds nearest waiting resident (driver dashboard) ----
-  var locWatch=null, lastLocPub=0, driverPos=null;
+  var locWatch=null, lastLocPub=0, driverPos=null, wakeLock=null;
+  // Keep the screen awake while sharing so the browser doesn't suspend GPS (best a web page can do toward background tracking).
+  function acquireWakeLock(){ try{ if('wakeLock' in navigator && locWatch!=null){ navigator.wakeLock.request('screen').then(function(wl){ wakeLock=wl; }).catch(function(){}); } }catch(e){} }
+  function releaseWakeLock(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
   function setShareLocText(){ var s=$("shareLocTxt"); if(s) s.textContent=(locWatch!=null)?t("locSharing"):t("locShare"); var b=$("shareLocBtn"); if(b) b.classList.toggle("on",locWatch!=null); }
   function toggleShareLoc(){
     if(locWatch!=null){ stopShareLoc(); return; }
@@ -1976,9 +1980,10 @@
       var now=Date.now(); if(now-lastLocPub<4000) return; lastLocPub=now;
       publish({kind:"driverloc", lat:driverPos.lat, lng:driverPos.lng, ts:now});  // share with the waiting rider
     }, function(){ stopShareLoc(); alert(t("locDenied")); }, {enableHighAccuracy:true, maximumAge:4000, timeout:20000});
+    acquireWakeLock();
     setShareLocText();
   }
-  function stopShareLoc(){ if(locWatch!=null){ try{navigator.geolocation.clearWatch(locWatch);}catch(e){} } locWatch=null; driverPos=null; setShareLocText(); if(state.driver) renderDash(); }
+  function stopShareLoc(){ if(locWatch!=null){ try{navigator.geolocation.clearWatch(locWatch);}catch(e){} } locWatch=null; driverPos=null; releaseWakeLock(); setShareLocText(); if(state.driver) renderDash(); }
   // distance (m) from the driver to a ride's pickup, going the shorter way around the loop (the cart drives both directions)
   function driverDistTo(ride){
     if(!driverPos || !ride || ride.pickup==="home" || !ride.pickup) return Infinity;
@@ -2183,7 +2188,7 @@
     $("reviewModal").addEventListener("click",function(e){ if(e.target===$("reviewModal")) closeReview(); });
     $("againBtn").addEventListener("click",resetBooking);
     // Auto-confirm payment when the resident returns from the InstaPay tab (only after they actually left to pay).
-    document.addEventListener("visibilitychange",function(){ if(document.hidden){ if(awaitingPay) payLeft=true; } else if(awaitingPay && payLeft) markPaidSuccess(awaitingPay); });
+    document.addEventListener("visibilitychange",function(){ if(document.hidden){ if(awaitingPay) payLeft=true; } else { if(awaitingPay && payLeft) markPaidSuccess(awaitingPay); if(locWatch!=null) acquireWakeLock(); } });
     window.addEventListener("blur",function(){ if(awaitingPay) payLeft=true; });
     window.addEventListener("focus",function(){ if(awaitingPay && payLeft) markPaidSuccess(awaitingPay); });
     $("bookBack").addEventListener("click",showHome);
