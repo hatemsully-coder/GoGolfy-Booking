@@ -308,9 +308,34 @@
 
   /* reports / analytics */
   .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 14px;}
-  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .stat{background:linear-gradient(135deg,#fff,var(--green-light));border:1px solid var(--line);border-radius:14px;padding:12px 14px;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(31,154,72,.08);}
+  .stat:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:var(--green);}
+  .stat.prof:before{background:var(--green);} .stat.loss:before{background:#c0392b;} .stat.ride:before{background:#3a78c2;} .stat.res:before{background:var(--accent);}
   .stat .v{font-size:1.35rem;font-weight:800;color:var(--green-dark);}
+  .stat.loss .v{color:#c0392b;}
   .stat .l{font-size:.7rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px;}
+  /* break-even card */
+  .be-card{border-radius:16px;padding:15px 16px;margin:4px 0 16px;color:#fff;box-shadow:var(--shadow);}
+  .be-card.be-hit{background:linear-gradient(135deg,#34ab57,#0e6e37);}
+  .be-card.be-miss{background:linear-gradient(135deg,#eaa13a,#c0392b);}
+  .be-card.be-empty{background:var(--green-light);color:var(--ink);}
+  .be-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .be-title{font-weight:800;font-size:1rem;}
+  .be-badge{background:rgba(255,255,255,.22);padding:4px 11px;border-radius:20px;font-size:.72rem;font-weight:800;white-space:nowrap;}
+  .be-main{display:flex;align-items:baseline;gap:8px;margin-top:8px;}
+  .be-num{font-size:2.5rem;font-weight:800;line-height:1;}
+  .be-unit{font-size:.82rem;opacity:.95;font-weight:700;}
+  .be-sub{font-size:.74rem;opacity:.92;margin-top:5px;}
+  .be-gauge{height:12px;background:rgba(255,255,255,.28);border-radius:8px;margin:12px 0 8px;overflow:hidden;}
+  .be-fill{height:100%;background:rgba(255,255,255,.95);border-radius:8px;transition:width .4s ease;}
+  .be-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.8rem;font-weight:700;}
+  .be-detail{font-weight:800;}
+  .be-empty-t{font-size:.8rem;font-weight:600;margin-top:6px;color:var(--muted);}
+  /* satellite report map */
+  #reportMap{width:100%;height:200px;background:#e9eef0;}
+  .report-mapcard{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);}
+  .report-mapcard .rm-cap{position:absolute;inset-inline-start:10px;bottom:10px;background:rgba(15,36,28,.62);color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:8px;z-index:500;}
+  .gg-pin.gg-pin-sm.hub{background:var(--accent);color:#15241c;border-color:#e0a106;}
   .chart-title{font-size:.82rem;font-weight:800;color:var(--ink);margin:16px 0 6px;}
   .chart{display:flex;align-items:flex-end;gap:6px;height:130px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow-x:auto;}
   .bar{flex:0 0 auto;width:30px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;}
@@ -703,11 +728,12 @@
           <input type="text" id="cfgWebhook" placeholder="https://your-n8n.app/webhook/gogolfy" />
         </div>
 
-        <div class="sec-title">Analytics</div>
+        <div class="sec-title">Analytics & break-even</div>
         <div class="g2">
           <div class="field"><label>Cost per ride (EGP)</label><div class="desc">Used for profit & margin.</div><input type="number" id="cfgCost" min="0" step="0.5" /></div>
-          <div class="field"><label>Stats API URL</label><div class="desc">n8n GET endpoint.</div><input type="text" id="cfgStats" placeholder="https://your-n8n.app/webhook/gogolfy-stats" /></div>
+          <div class="field"><label>Daily operating cost (EGP/day)</label><div class="desc">Driver, cart, etc. — sets the break-even target.</div><input type="number" id="cfgDailyCost" min="0" step="5" /></div>
         </div>
+        <div class="field"><label>Stats API URL</label><div class="desc">n8n GET endpoint.</div><input type="text" id="cfgStats" placeholder="https://your-n8n.app/webhook/gogolfy-stats" /></div>
 
         <div class="sec-title">Welcome message (landing page)</div>
         <div class="field"><label>Welcome title</label><input type="text" id="cfgWelTitle" placeholder="Need a ride? 🛺" /></div>
@@ -828,6 +854,7 @@
     labels:[],                                     // (legacy) name overrides
     route:[],                                      // editable [{name, seg(m to next)}]; empty = built-in 12-point loop
     cost:0,                                        // cost per ride (EGP) for profit/margin
+    dailyCost:0,                                   // fixed operating cost per day (EGP) — for break-even
     statsUrl:"https://hatemsully.app.n8n.cloud/webhook/gogolfy-stats",  // analytics API
     welcomeTitle:"",                               // landing welcome title (blank = default)
     welcomeSub:"",                                 // landing welcome subtitle (blank = default)
@@ -958,17 +985,19 @@
   function seqList(){ var h=hubIdx(), a=[]; for(var i=1;i<=N;i++){ if(i!==h) a.push(i); } return a; }  // pickup points in sequence, hub excluded
   function havM(a,b){ return haversine(ptCoord(a),ptCoord(b)); }
   function segDist(p,q){ return (q===p+1)?segOf(p):(havM(p,q)*1.25); }                       // road distance p→q (uses tuned seg when adjacent)
-  // Pickup-to-pickup follows the SEQUENCE through the in-between points (never shortcut through the hub).
-  // The hub (12) goes DIRECT to/from any point. Works for every pair, both directions.
+  // Pickup points form a CLOSED LOOP (excluding the hub). The cart can drive it BOTH ways —
+  // clockwise or counter-clockwise — so distance = the shorter direction around the loop.
+  // The hub (12) goes DIRECT to/from any point. Works for every pair.
   function rideDistance(posA,posB){
     if(!posA||!posB||posA==="home"||posB==="home") return null;
     var h=hubIdx();
     if(posA===h || posB===h) return Math.round(havM(posA,posB)*1.25);                        // hub ↔ point: direct
-    var seq=seqList(), ia=seq.indexOf(posA), ib=seq.indexOf(posB);
-    if(ia<0||ib<0) return Math.round(havM(posA,posB)*1.25);
-    var lo=Math.min(ia,ib), hi=Math.max(ia,ib), d=0;
-    for(var k=lo;k<hi;k++){ d+=segDist(seq[k],seq[k+1]); }                                   // sum along the sequence
-    return Math.round(d);
+    var seq=seqList(), n=seq.length, ia=seq.indexOf(posA), ib=seq.indexOf(posB);
+    if(ia<0||ib<0||n<2) return Math.round(havM(posA,posB)*1.25);
+    function sd(k){ return segDist(seq[k], seq[(k+1)%n]); }
+    var total=0; for(var j=0;j<n;j++) total+=sd(j);
+    var fwd=0,k=ia; while(k!==ib){ fwd+=sd(k); k=(k+1)%n; }
+    return Math.round(Math.min(fwd, total-fwd));                                             // shorter direction
   }
   function tier(res){ return res<=1?0:(res===2?1:2); }
   // Private distance band: ≤T0 → 0, T0–T1 → 1, ≥T1 → 2
@@ -1065,19 +1094,21 @@
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
   function bSmallIcon(txt){ return L.divIcon({className:'gg-pin gg-pin-sm', html:String(txt), iconSize:[22,22], iconAnchor:[11,11]}); }
   function loopCoordsAll(){ var c=[]; for(var i=1;i<=N;i++){ c.push(ptCoord(i)); viaOf(i).forEach(function(v){ c.push([v[0],v[1]]); }); } if(c.length>1) c.push(c[0]); return c; }
-  // Map route: between pick-up points, follow the SEQUENCE through the in-between points (e.g. 1→2→…→11,
-  // or 11→10→9→…) — never shortcut through the hub. The hub (12) draws a direct line to/from any point.
+  // Map route: the pick-up points are a CLOSED LOOP (hub excluded). Draw the SHORTER direction around
+  // the loop (clockwise or counter-clockwise), through the in-between points + any traced road corners.
+  // The hub (12) draws a direct line to/from any point.
   function routeArc(pi,di){
     var h=hubIdx();
     if(pi===h || di===h) return [ptCoord(pi), ptCoord(di)];                 // hub ↔ point: direct line
-    var seq=seqList(), ia=seq.indexOf(pi), ib=seq.indexOf(di);
-    if(ia<0||ib<0) return [ptCoord(pi), ptCoord(di)];
-    var lo=Math.min(ia,ib), hi=Math.max(ia,ib), coords=[];
-    for(var k=lo;k<=hi;k++){
-      coords.push(ptCoord(seq[k]));
-      if(k<hi && seq[k+1]===seq[k]+1){ viaOf(seq[k]).forEach(function(v){ coords.push([v[0],v[1]]); }); }
-    }
-    if(ia>ib) coords.reverse();                                            // present from pickup → destination
+    var seq=seqList(), n=seq.length, ia=seq.indexOf(pi), ib=seq.indexOf(di);
+    if(ia<0||ib<0||n<2) return [ptCoord(pi), ptCoord(di)];
+    function sd(k){ return segDist(seq[k], seq[(k+1)%n]); }
+    function viaFwd(k){ var p=seq[k], q=seq[(k+1)%n]; return (q===p+1)?viaOf(p):[]; }
+    var total=0; for(var j=0;j<n;j++) total+=sd(j);
+    var fwd=0,k=ia; while(k!==ib){ fwd+=sd(k); k=(k+1)%n; }
+    var coords=[ptCoord(seq[ia])];
+    if(fwd<=total-fwd){ k=ia; while(k!==ib){ viaFwd(k).forEach(function(v){coords.push([v[0],v[1]]);}); k=(k+1)%n; coords.push(ptCoord(seq[k])); } }      // clockwise
+    else { k=ia; while(k!==ib){ var pk=(k-1+n)%n; viaFwd(pk).slice().reverse().forEach(function(v){coords.push([v[0],v[1]]);}); k=pk; coords.push(ptCoord(seq[k])); } }  // counter-clockwise
     return coords;
   }
   function updateMap(){
@@ -1093,7 +1124,7 @@
       if(!window.L) return;
       if(!bMap){
         bMap=L.map('bookMap',{zoomControl:false,attributionControl:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,dragging:false,touchZoom:false,keyboard:false});
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(bMap);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18}).addTo(bMap);
       }
       bAllMk.forEach(function(m){ bMap.removeLayer(m); }); bAllMk=[];
       bMarkers.forEach(function(m){ try{m.unbindTooltip();}catch(e){} bMap.removeLayer(m); }); bMarkers=[];
@@ -1385,29 +1416,71 @@
       return '<div class="bar '+cls+'"><div class="bv">'+(fmt?fmt(d[key]):d[key])+'</div><div class="b" style="height:'+h+'px"></div><div class="bl">'+esc(lbl)+'</div></div>';
     }).join("")+'</div>';
   }
+  function round1(x){ return Math.round(x*10)/10; }
+  function rAr(){ return lang==="ar"; }
+  function statCard(v,l,cls){ return '<div class="stat '+(cls||'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; }
+  function beCard(tot, dailyCost, nDays, u){
+    if(!(dailyCost>0)) return '<div class="be-card be-empty"><div class="be-title">⚖️ '+(rAr()?"نقطة التعادل":"Break-even")+'</div><div class="be-empty-t">'+(rAr()?"أدخل «التكلفة اليومية للتشغيل» في الإعدادات لمعرفة عدد الركاب المطلوب يوميًا للتعادل.":"Set your Daily operating cost in Settings to see how many riders/day you need to break even.")+'</div></div>';
+    var avgFare=tot.residents>0?tot.revenue/tot.residents:0;
+    if(!(avgFare>0)) return '<div class="be-card be-empty"><div class="be-title">⚖️ '+(rAr()?"نقطة التعادل":"Break-even")+'</div><div class="be-empty-t">'+(rAr()?"لا توجد إيرادات بعد — يظهر التعادل بعد أول الحجوزات.":"No rider revenue yet — break-even appears once bookings come in.")+'</div></div>';
+    var bePerDay=dailyCost/avgFare, actualPerDay=nDays>0?tot.residents/nDays:0;
+    var hit=actualPerDay>=bePerDay, diff=Math.abs(actualPerDay-bePerDay);
+    var barPct=Math.max(3, Math.min(100, bePerDay>0?actualPerDay/bePerDay*100:0));
+    var status=hit?('✓ '+(rAr()?"فوق التعادل":"Above break-even")):(rAr()?"تحت التعادل":"Below break-even");
+    var detail=hit?('▲ +'+round1(diff)+' '+(rAr()?"راكب/يوم":"riders/day")):('▼ '+(rAr()?"تحتاج ":"need ")+round1(diff)+(rAr()?" راكب/يوم":" more/day"));
+    return '<div class="be-card '+(hit?"be-hit":"be-miss")+'">'
+      +'<div class="be-head"><span class="be-title">⚖️ '+(rAr()?"نقطة التعادل":"Break-even")+'</span><span class="be-badge">'+status+'</span></div>'
+      +'<div class="be-main"><span class="be-num">'+Math.ceil(bePerDay)+'</span><span class="be-unit">'+(rAr()?"راكب/يوم مطلوب":"riders/day needed")+'</span></div>'
+      +'<div class="be-sub">'+(rAr()?"لتغطية":"to cover")+' '+iso(dailyCost+' '+u+'/'+(rAr()?"يوم":"day"))+' · '+(rAr()?"متوسط الأجرة":"avg fare")+' '+iso(round1(avgFare)+' '+u)+'</div>'
+      +'<div class="be-gauge"><div class="be-fill" style="width:'+barPct+'%"></div></div>'
+      +'<div class="be-row"><span>'+(rAr()?"الفعلي":"Actual")+': <b>'+round1(actualPerDay)+'</b> '+(rAr()?"راكب/يوم":"riders/day")+'</span><span class="be-detail">'+detail+'</span></div>'
+    +'</div>';
+  }
+  var repMap=null;
+  function renderReportMap(){
+    var box=$("reportMap"); if(!box) return;
+    loadLeaflet(function(){
+      if(!window.L) return;
+      if(repMap){ try{repMap.remove();}catch(e){} repMap=null; }
+      repMap=L.map('reportMap',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,touchZoom:false,keyboard:false});
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18}).addTo(repMap);
+      var all=[], h=hubIdx(), seq=seqList();
+      var loop=seq.map(function(i){return ptCoord(i);}); if(loop.length>1) loop.push(loop[0]);
+      L.polyline(loop,{color:GG_GREEN,weight:3,opacity:.9}).addTo(repMap);
+      for(var i=1;i<=N;i++){ var c=ptCoord(i); all.push(c);
+        L.marker(c,{icon:L.divIcon({className:'gg-pin gg-pin-sm'+(i===h?' hub':''),html:String(i),iconSize:[20,20],iconAnchor:[10,10]})}).addTo(repMap); }
+      if(all.length) repMap.fitBounds(L.latLngBounds(all),{padding:[26,26]});
+      setTimeout(function(){ try{ repMap.invalidateSize(); if(all.length) repMap.fitBounds(L.latLngBounds(all),{padding:[26,26]}); }catch(e){} },180);
+    });
+  }
   function renderReports(){
-    var box=$("reportsBody"); box.innerHTML='<div class="dash-empty">'+esc(lang==="ar"?"جارٍ التحميل…":"Loading…")+'</div>';
+    var box=$("reportsBody"); box.innerHTML='<div class="dash-empty">'+esc(rAr()?"جارٍ التحميل…":"Loading…")+'</div>';
     if(!cfg.statsUrl){ box.innerHTML='<div class="mini-note warn-note">Set the Stats API URL in Settings.</div>'; return; }
     fetch(cfg.statsUrl,{cache:"no-store"}).then(function(r){ return r.json(); }).then(function(s){
-      var days=(s&&s.days)||[]; var cost=Number(cfg.cost)||0;
-      days.forEach(function(d){ d.profit=Math.round((d.revenue-cost*d.rides)*100)/100; });
+      var days=(s&&s.days)||[]; var cost=Number(cfg.cost)||0, dailyCost=Number(cfg.dailyCost)||0;
+      days.forEach(function(d){ d.profit=Math.round((d.revenue-cost*d.rides-dailyCost)*100)/100; });
       var last=days.slice(-14);
       var tot=(s&&s.totals)||{revenue:0,residents:0,rides:0};
-      var profit=Math.round((tot.revenue-cost*tot.rides)*100)/100;
+      var nDays=days.length;
+      var profit=Math.round((tot.revenue-cost*tot.rides-dailyCost*nDays)*100)/100;
       var margin=tot.revenue>0?Math.round(profit/tot.revenue*1000)/10:0;
-      if(!days.length){ box.innerHTML='<div class="mini-note">No bookings logged yet. Once residents book (and the «Bookings» sheet tab exists), charts appear here.</div>'; return; }
+      if(!days.length){ box.innerHTML='<div class="mini-note">'+(rAr()?"لا توجد حجوزات بعد. تظهر الإحصاءات بعد أول حجز.":"No bookings logged yet. Once residents book (and the «Bookings» sheet tab exists), charts appear here.")+'</div>'; return; }
       var u=curUnit();
       var html='<div class="stat-grid">'
-        +'<div class="stat"><div class="v">'+tot.revenue+' '+u+'</div><div class="l">Revenue</div></div>'
-        +'<div class="stat"><div class="v">'+profit+' '+u+'</div><div class="l">Profit ('+margin+'%)</div></div>'
-        +'<div class="stat"><div class="v">'+tot.rides+'</div><div class="l">Rides</div></div>'
-        +'<div class="stat"><div class="v">'+tot.residents+'</div><div class="l">Residents</div></div>'
+        + statCard(iso(tot.revenue+' '+u),(rAr()?"الإيراد":"Revenue"),'rev')
+        + statCard(iso(profit+' '+u),(rAr()?"الربح":"Profit")+' ('+margin+'%)', profit>=0?'prof':'loss')
+        + statCard(tot.rides,(rAr()?"الرحلات":"Rides"),'ride')
+        + statCard(tot.residents,(rAr()?"الركاب":"Residents"),'res')
         +'</div>';
-      html+='<div class="chart-title">💵 Revenue / day ('+u+')</div>'+barChart(last,"revenue","",null);
-      html+='<div class="chart-title">👥 Residents / day</div>'+barChart(last,"residents","blue",null);
-      html+='<div class="chart-title">📈 Profit / day ('+u+')</div>'+barChart(last,"profit","amber",null);
+      html += beCard(tot, dailyCost, nDays, u);
+      html += '<div class="chart-title">🛰️ '+(rAr()?"الكمبوند — قمر صناعي":"Compound — satellite view")+'</div>'
+        + '<div class="report-mapcard"><div id="reportMap"></div><div class="rm-cap">📍 '+esc(comp())+'</div></div>';
+      html+='<div class="chart-title">💵 '+(rAr()?"الإيراد / يوم":"Revenue / day")+' ('+u+')</div>'+barChart(last,"revenue","",null);
+      html+='<div class="chart-title">👥 '+(rAr()?"الركاب / يوم":"Residents / day")+'</div>'+barChart(last,"residents","blue",null);
+      html+='<div class="chart-title">📈 '+(rAr()?"الربح / يوم":"Profit / day")+' ('+u+')</div>'+barChart(last,"profit","amber",null);
       box.innerHTML=html;
-    }).catch(function(e){ box.innerHTML='<div class="mini-note warn-note">Could not load stats. Check the Stats API URL and that the workflow is active.</div>'; });
+      renderReportMap();
+    }).catch(function(e){ box.innerHTML='<div class="mini-note warn-note">'+(rAr()?"تعذّر تحميل الإحصاءات. تحقق من رابط الـ API.":"Could not load stats. Check the Stats API URL and that the workflow is active.")+'</div>'; });
   }
   function buildAutoReply(){
     var u=cfg.baseUrl||"https://gogolfy.net/";
@@ -1490,7 +1563,7 @@
       if(rMap){ try{rMap.remove();}catch(e){} rMap=null; }
       clearRouteMarkers(); rLine=null;
       rMap=L.map(box,{scrollWheelZoom:false});
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:'Tiles &copy; Esri'}).addTo(rMap);
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18,attribution:'Tiles &copy; Esri'}).addTo(rMap);
       drawRouteLine(); renderRouteMarkers(); recalcSegs(); $("cfgLabels").value=routeEditToText();
       var b=reLoopCoords(); if(b.length) rMap.fitBounds(b,{padding:[30,30]});
       setTimeout(function(){ if(rMap) rMap.invalidateSize(); },300);
@@ -1509,7 +1582,7 @@
     $("cfgPr1").value=cfg.prem[0]; $("cfgPr2").value=cfg.prem[1]; $("cfgPr3").value=cfg.prem[2];
     $("cfgPayLink").value=cfg.payLink||""; $("cfgChannel").value=cfg.channel||"";
     $("cfgWebhook").value=cfg.webhook||"";
-    $("cfgCost").value=cfg.cost||0; $("cfgStats").value=cfg.statsUrl||"";
+    $("cfgCost").value=cfg.cost||0; if($("cfgDailyCost")) $("cfgDailyCost").value=cfg.dailyCost||0; $("cfgStats").value=cfg.statsUrl||"";
     $("cfgWelTitle").value=cfg.welcomeTitle||""; $("cfgWelSub").value=cfg.welcomeSub||"";
     $("cfgCompound").value=cfg.compound||""; $("cfgCurrency").value=cfg.currency||"";
     $("cfgBaseUrl").value=cfg.baseUrl||"";
@@ -1536,7 +1609,7 @@
     cfg.payLink=$("cfgPayLink").value.trim();
     cfg.channel=$("cfgChannel").value.trim()||DEFAULTS.channel;
     cfg.webhook=$("cfgWebhook").value.trim();
-    cfg.cost=Number($("cfgCost").value)||0; cfg.statsUrl=$("cfgStats").value.trim();
+    cfg.cost=Number($("cfgCost").value)||0; if($("cfgDailyCost")) cfg.dailyCost=Number($("cfgDailyCost").value)||0; cfg.statsUrl=$("cfgStats").value.trim();
     cfg.welcomeTitle=$("cfgWelTitle").value; cfg.welcomeSub=$("cfgWelSub").value;
     cfg.compound=$("cfgCompound").value; cfg.currency=$("cfgCurrency").value;
     cfg.baseUrl=$("cfgBaseUrl").value.trim();
@@ -1622,7 +1695,7 @@
       if(!window.L) return;
       if(!dMap){
         dMap=L.map('driverMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(dMap);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18}).addTo(dMap);
       }
       var carPos=[lat,lng];
       if(!dCar){ dCar=L.marker(carPos,{icon:L.divIcon({className:'gg-pin gg-pin-lg car',html:'🚗',iconSize:[36,36],iconAnchor:[18,18]}),zIndexOffset:1200}).addTo(dMap); }
@@ -1760,7 +1833,7 @@
     loadLeaflet(function(){
       if(!window.L) return;
       if(!fMap){ fMap=L.map('driverFleetMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20}).addTo(fMap); }
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18}).addTo(fMap); }
       fMk.forEach(function(m){ try{fMap.removeLayer(m);}catch(e){} }); fMk=[];
       if(fLine){ fMap.removeLayer(fLine); fLine=null; }
       if(fCar){ fMap.removeLayer(fCar); fCar=null; }
