@@ -169,6 +169,7 @@
   .status-line{border-radius:12px;padding:12px;margin-bottom:14px;font-weight:700;text-align:center;font-size:.95rem;
     background:var(--green-light);color:var(--green-dark);}
   .status-line.live-wait{background:#fff6e5;color:#8a6300;}
+  .status-line.paid-ok{background:linear-gradient(135deg,#e9f7ef,#d3efdf);color:var(--green-dark);border:1px solid #bfe6cd;animation:pop .4s ease;}
   .status-line .pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:currentColor;margin-inline-end:6px;animation:blink 1.2s infinite;}
   @keyframes blink{50%{opacity:.25}}
 
@@ -333,8 +334,11 @@
   .home-help-row{display:flex;gap:8px;}
   .help-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border-radius:12px;font-weight:800;font-size:.86rem;text-decoration:none;border:1.5px solid var(--line);}
   .help-btn.wa{background:#e9f7ef;color:#0e6e37;border-color:#bfe6cd;}
-  .help-btn.call{background:#eaf1fb;color:#1f4e8c;border-color:#c6d8f2;}
+  .help-btn.call{background:#eaf1fb;color:#1f4e8c;border-color:#c6d8f2;direction:ltr;}   /* keep the phone number left-to-right even in Arabic */
   .help-btn:active{filter:brightness(.96);}
+  .airtag-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#eef3fb;color:#1f4e8c;border:1.5px solid #c9d9f2;
+    font-weight:800;padding:13px;border-radius:14px;text-decoration:none;margin:0 0 10px;font-size:.95rem;box-shadow:0 3px 10px rgba(31,78,140,.10);}
+  .airtag-btn:active{filter:brightness(.96);}
 
   /* reports / analytics */
   .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:8px 0 14px;}
@@ -742,6 +746,13 @@
           <span class="tg-label">💬 WhatsApp driver alert (turn on after WhatsApp API)</span>
           <label class="switch"><input type="checkbox" id="cfgWa" /><span class="slider"></span></label>
         </div>
+        <div class="sec-title">🚗 Live cart location</div>
+        <div class="field">
+          <div class="desc"><b>Two ways to put the cart on the map:</b><br>
+            <b>1) In-app GPS (works now):</b> the driver opens the Driver page and taps <b>“Share my live location”</b> — the 🚗 then shows live on the booking & after-booking guide maps.<br>
+            <b>2) Telegram live location (optional):</b> the driver shares <b>Live Location</b> with the GoGolfy bot; an n8n flow stores it and serves it at a URL. Paste that URL below and the app will poll it for the cart’s position.</div>
+          <input type="text" id="cfgDriverLocUrl" placeholder="https://your-n8n.app/webhook/driver-loc  (returns {lat,lng}) — optional" />
+        </div>
         <div class="field">
           <label>Pick-up points & route</label>
           <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Tap a <b>＋</b> to add a road corner and drag it onto the road. Routes between pick-up points <b>follow the sequence</b> through the in-between points (e.g. 1→2→3→…), in either direction; the <b>hub</b> point goes direct to/from any point. Distances recalculate automatically.</div>
@@ -939,6 +950,7 @@
     adminPin:"1234",                               // change this in Admin → Settings
     homeEnabled:false,                             // Premium/Home OFF until admin opens it in the panel
     waEnabled:false,                               // WhatsApp driver alert held until API ready
+    driverLocUrl:"",                               // optional GET endpoint returning {lat,lng} of the cart (n8n storing the driver's Telegram live location); blank = use the in-app GPS share
     labels:[],                                     // (legacy) name overrides
     route:[],                                      // editable [{name, seg(m to next)}]; empty = built-in 12-point loop
     cost:0,                                        // cost per ride (EGP) for profit/margin
@@ -1001,14 +1013,15 @@
       b_cash:"💵 Cash", st_onway:"✅ Booking confirmed — a driver is on the way!", st_waiting:"Waiting for a driver to accept…",
       st_accepted:"✅ Driver accepted — on the way!", st_arriving:"🚗 Driver is arriving now",
       st_done:"🏁 Ride completed — thank you!", st_paid:"💳 Payment opened in InstaPay",
+      paidTitle:"Payment received! 🎉", paidOk:"✅ Paid — your booking is confirmed. The driver is on the way!", payDone:"✅ I've completed the payment",
       driverTitle:"Driver Dashboard", driverSub:"Live ride requests", noRides:"No ride requests yet — waiting…",
       live:"Live", offline:"Offline", b_accept:"Accept", b_arrive:"Arriving", b_done:"✅ Done (paid)", b_paid:"💳 Paid",
       notePrompt:"Trip done — money received. Add a note (optional):",
       mapTapHint:"Tap a point on the map to set your destination",
       mapTapChange:"Tap any point to change · 🏠 = hub",
-      locShare:"Find nearest & share my location", locSharing:"Location on — nearest first · tap to stop",
+      locShare:"Find nearest & share my location", locSharing:"Location on — nearest first · tap to stop", trackCart:"Track cart on AirTag",
       locDenied:"Location permission denied. Please allow location to find the nearest rider and share it.", locNoGeo:"Location is not available on this device.",
-      dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you.",
+      dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you.", dlWait:"Waiting for the driver to share their location…",
       lblWhen:"🕒 When", whenNow:"Ride now", whenLater:"Schedule for later", whenNowHint:"A driver comes as soon as possible.", whenSet:"Scheduled for:",
       nearest:"Nearest — pick up next", away:"~{m} m · ~{min} min from you", nearHint:"Turn on your location (button above) to see who's nearest and on your way.",
       inMin:"in {n} min", dueNow:"due now", b_manual:"✋ Manual",
@@ -1054,14 +1067,15 @@
       b_cash:"💵 نقدًا", st_onway:"✅ تم تأكيد الحجز — السائق في الطريق إليك!", st_waiting:"في انتظار قبول السائق…",
       st_accepted:"✅ قبل السائق — في الطريق إليك!", st_arriving:"🚗 السائق يصل الآن",
       st_done:"🏁 اكتملت الرحلة — شكرًا لك!", st_paid:"💳 تم فتح الدفع في إنستاباي",
+      paidTitle:"تم استلام الدفع! 🎉", paidOk:"✅ تم الدفع — تم تأكيد حجزك. السائق في الطريق إليك!", payDone:"✅ أكملتُ الدفع",
       driverTitle:"لوحة السائق", driverSub:"طلبات الرحلات المباشرة", noRides:"لا توجد طلبات بعد — في الانتظار…",
       live:"مباشر", offline:"غير متصل", b_accept:"قبول", b_arrive:"يصل", b_done:"✅ تم (مدفوع)", b_paid:"💳 مدفوع",
       notePrompt:"تمت الرحلة — تم استلام المبلغ. أضف ملاحظة (اختياري):",
       mapTapHint:"اضغط نقطة على الخريطة لتحديد وجهتك",
       mapTapChange:"اضغط أي نقطة للتغيير · 🏠 = المركز",
-      locShare:"الأقرب ومشاركة موقعي", locSharing:"الموقع مُفعّل — الأقرب أولاً · اضغط للإيقاف",
+      locShare:"الأقرب ومشاركة موقعي", locSharing:"الموقع مُفعّل — الأقرب أولاً · اضغط للإيقاف", trackCart:"تتبّع العربة (AirTag)",
       locDenied:"تم رفض إذن الموقع. فضلاً اسمح بالموقع لإيجاد الأقرب ومشاركته.", locNoGeo:"الموقع غير متاح على هذا الجهاز.",
-      dlTitle:"🚗 موقع السائق (مباشر)", dlNote:"يتم التحديث مباشرة أثناء تحرك السائق نحوك.",
+      dlTitle:"🚗 موقع السائق (مباشر)", dlNote:"يتم التحديث مباشرة أثناء تحرك السائق نحوك.", dlWait:"في انتظار مشاركة السائق لموقعه…",
       lblWhen:"🕒 الموعد", whenNow:"الآن", whenLater:"جدولة لاحقًا", whenNowHint:"يصل السائق في أقرب وقت ممكن.", whenSet:"مجدولة في:",
       nearest:"الأقرب — التالي", away:"~{m} م · ~{min} د منك", nearHint:"فعّل موقعك (الزر بالأعلى) لمعرفة الأقرب إليك وفي طريقك.",
       inMin:"خلال {n} دقيقة", dueNow:"مستحقة الآن", b_manual:"✋ يدوي",
@@ -1226,14 +1240,9 @@
   }
   // Offline guide map: a self-drawn SVG schematic (no satellite tiles, no Leaflet, no internet).
   // Points are placed by real coordinates so the layout is accurate; the route follows the real path.
-  function updateMap(){
-    var card=$("mapCard"); if(!card) return;
-    if(state.home || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); bMapSig=null; return; }
-    card.classList.remove("hidden");
-    var box=$("bookMap"); if(!box) return;
-    var sig=(state.pickup||"-")+"|"+(state.destination||"-")+"|"+N+"|"+lang;
-    if(sig===bMapSig && box.querySelector("svg")) return;   // nothing map-relevant changed
-    bMapSig=sig;
+  var liveCar=null;   // {lat,lng} of the cart — from the driver's live location (GPS share or Telegram feed)
+  // Builds the offline SVG guide map (loop + route + numbered points + the live car) — reused on booking & after-booking.
+  function guideSvgString(){
     var P=bookProj(), pj=P.proj, W=P.W, H=P.H, h=hubIdx(), seq=seqList();
     function px(i){ var c=ptCoord(i); return pj(c[0],c[1]); }
     function f1(x){ return x.toFixed(1); }
@@ -1241,16 +1250,13 @@
     s.push('<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#eef4ee"/>');
     for(var gx=40;gx<W;gx+=40) s.push('<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="#e2ece4" stroke-width="1"/>');
     for(var gy=40;gy<H;gy+=40) s.push('<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="#e2ece4" stroke-width="1"/>');
-    // the loop road (closed, hub excluded) — faint guide
     var lpts=seq.map(px); if(lpts.length>1){ s.push('<path d="M'+lpts.map(function(p){return f1(p[0])+' '+f1(p[1]);}).join(' L')+' Z" fill="none" stroke="#c4e2cf" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>'); }
-    // the actual route (pickup → destination) — white casing + green line
     if(state.pickup&&state.destination){
       var arc=routeArc(state.pickup,state.destination).map(function(c){ return pj(c[0],c[1]); });
       var rp='M'+arc.map(function(p){return f1(p[0])+' '+f1(p[1]);}).join(' L');
       s.push('<path d="'+rp+'" fill="none" stroke="#ffffff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>');
       s.push('<path d="'+rp+'" fill="none" stroke="'+GG_GREEN+'" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>');
     }
-    // points (tappable)
     for(var i=1;i<=N;i++){
       var p=px(i), isPk=(i===state.pickup), isDs=(i===state.destination), isHub=(i===h), unHub=isHub&&!isPk&&!isDs, big=(isPk||isDs), r=big?15:11;
       var fill=isPk?GG_GREEN:(isDs?'#f4b400':(unHub?'#fff3d6':'#ffffff'));
@@ -1262,8 +1268,21 @@
       s.push('<g data-pt="'+i+'" style="cursor:pointer"><circle cx="'+f1(p[0])+'" cy="'+f1(p[1])+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="2.5"/>'
         +'<text x="'+f1(p[0])+'" y="'+f1(p[1]+(big?5:4))+'" text-anchor="middle" font-size="'+(big?14:11)+'" font-weight="800" fill="'+tcol+'">'+i+'</text></g>');
     }
+    if(liveCar&&liveCar.lat!=null){ var cc=pj(liveCar.lat,liveCar.lng), cx=Math.max(12,Math.min(W-12,cc[0])), cy=Math.max(14,Math.min(H-12,cc[1]));
+      s.push('<g><circle cx="'+f1(cx)+'" cy="'+f1(cy)+'" r="18" fill="#2b7fd8" opacity="0.16"/><circle cx="'+f1(cx)+'" cy="'+f1(cy)+'" r="14" fill="#2b7fd8" stroke="#ffffff" stroke-width="3"/><text x="'+f1(cx)+'" y="'+f1(cy+5)+'" text-anchor="middle" font-size="15">🚗</text></g>'); }
     s.push('</svg>');
-    box.innerHTML=s.join('');
+    return s.join('');
+  }
+  function updateMap(){
+    var card=$("mapCard"); if(!card) return;
+    if(state.home || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); bMapSig=null; return; }
+    card.classList.remove("hidden");
+    var box=$("bookMap"); if(!box) return;
+    var carSig=liveCar?(liveCar.lat.toFixed(5)+","+liveCar.lng.toFixed(5)):"-";
+    var sig=(state.pickup||"-")+"|"+(state.destination||"-")+"|"+N+"|"+lang+"|"+carSig;
+    if(sig===bMapSig && box.querySelector("svg")) return;   // nothing map-relevant changed
+    bMapSig=sig;
+    box.innerHTML=guideSvgString();
     box.querySelectorAll('[data-pt]').forEach(function(g){ g.addEventListener('click',function(){
       var n=parseInt(g.getAttribute('data-pt'),10);
       if(!state.pickup){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; renderAll(); }
@@ -1435,16 +1454,31 @@
     var pub=Object.assign({},b); delete pub.clientPhone; delete pub.driverPhone;
     publish(pub);                     // live driver dashboard (ntfy — public, no phone numbers)
     webhookPost(b);                   // n8n automation (private — Google Sheet + Telegram/WhatsApp)
-    if(state.payMethod==="instapay" && cfg.payLink) window.open(cfg.payLink,"_blank");
+    if(state.payMethod==="instapay" && cfg.payLink){ awaitingPay=b; window.open(cfg.payLink,"_blank"); }   // arm auto-success for the return from InstaPay
     resetDriverLoc();
     showReceipt(b);
     setResidentStatus("onway");
     listenStatus();                   // wait for live status + driver location on this channel
+    showDriverLoc();                  // show the guide map (pickup + route); the 🚗 appears as the driver shares location
+    startDriverLocPoll();             // also poll the Telegram/live-location endpoint if configured
   }
   function flashBtn(el,txt){ if(!el) return; var o=el.getAttribute("data-orig")||el.textContent; el.setAttribute("data-orig",o); el.textContent=txt; clearTimeout(el._ft); el._ft=setTimeout(function(){ el.textContent=el.getAttribute("data-orig"); },2000); }
   function reportPayment(b,method){
     publish({kind:"status",id:b.id,status:(method==="cash"?"cash":"paid")});
     webhookPost(Object.assign({},b,{event:"payment",payment:method}));
+  }
+  // After InstaPay: convert the page to a confirmed "payment received" success state.
+  var awaitingPay=null, payLeft=false;   // booking awaiting return from InstaPay; payLeft = the resident actually switched away to pay
+  function markPaidSuccess(b){
+    awaitingPay=null; payLeft=false;
+    if(!b || b._paidDone) return; b._paidDone=true;
+    reportPayment(b,"instapay");                                   // notify driver + log: paid
+    var pb=$("payBtn"), cb=$("cashBtn"), pt=$("payTitle");
+    if(pb) pb.classList.add("hidden"); if(cb) cb.classList.add("hidden"); if(pt) pt.textContent="";
+    var dt=$("doneTitle"); if(dt) dt.textContent=t("paidTitle");
+    var sl=$("statusLine"); if(sl){ sl.classList.remove("live-wait"); sl.classList.add("paid-ok"); sl.textContent=t("paidOk"); }
+    var tk=document.querySelector("#screen-done .tick"); if(tk){ tk.style.animation="none"; void tk.offsetWidth; tk.style.animation="pop .4s ease"; }
+    window.scrollTo(0,0);
   }
   function rowEl(k,v){ return '<div class="row"><span class="k">'+k+'</span><span class="v">'+esc(v)+'</span></div>'; }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
@@ -1461,12 +1495,16 @@
     var pb=$("payBtn"), cb=$("cashBtn");
     $("payTitle").textContent="";
     cb.classList.add("hidden");
-    if(b.payment==="instapay" && cfg.payLink){ pb.classList.remove("hidden"); pb.textContent=t("pay"); pb.onclick=function(){ window.open(cfg.payLink,"_blank"); }; }
+    if(b.payment==="instapay" && cfg.payLink){ pb.classList.remove("hidden"); pb.textContent=t("pay");
+      pb.onclick=function(){ awaitingPay=b; try{ window.open(cfg.payLink,"_blank"); }catch(e){}
+        pb.textContent=t("payDone"); pb.onclick=function(){ markPaidSuccess(b); };   // fallback if auto-detect on return is missed
+      };
+    }
     else pb.classList.add("hidden");
     $("resendBtn").classList.toggle("hidden", !cfg.waEnabled);
     $("screen-book").classList.add("hidden"); $("screen-done").classList.remove("hidden"); window.scrollTo(0,0);
   }
-  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } bookingId=null; resetDriverLoc(); if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; state.scheduledFor=null; if($("schedTime")){ $("schedTime").value=""; $("schedTime").classList.add("hidden"); } if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); window.scrollTo(0,0); }
+  function resetBooking(){ if(es){ try{es.close();}catch(e){} es=null; } awaitingPay=null; payLeft=false; bookingId=null; resetDriverLoc(); if($("clientPhone")) $("clientPhone").value=""; state.destination=null; state.residents=1; state.scheduledFor=null; if($("schedTime")){ $("schedTime").value=""; $("schedTime").classList.add("hidden"); } if(!state.home) state.rideType="private"; $("screen-done").classList.add("hidden"); $("screen-book").classList.remove("hidden"); renderAll(); listenStatus(); startDriverLocPoll(); window.scrollTo(0,0); }
 
   // ---- admin ----
   var adminAuthedMem=false;
@@ -1489,8 +1527,8 @@
     $("launchTitle").textContent=t("launchTitle"); $("launchSub").textContent=t("launchSub"); $("launchTag").textContent=t("launchTag");
     var wa=$("launchWa"); if(cfg.phone){ wa.style.display=""; wa.textContent=t("launchWa"); wa.href="https://wa.me/"+cfg.phone.replace(/[^0-9]/g,"")+"?text="+encodeURIComponent("GoGolfy"); } else { wa.style.display="none"; }
   }
-  function showHome(){ ["screen-book","screen-done","screen-driver","screen-launch"].forEach(function(s){ $(s).classList.add("hidden"); }); $("screen-home").classList.remove("hidden"); setHomeTexts(); }
-  function goToBooking(){ $("screen-home").classList.add("hidden"); $("screen-book").classList.remove("hidden"); if(!state.pickup&&!state.home) $("pickupPicker").classList.remove("hidden"); updateMap(); window.scrollTo(0,0); }
+  function showHome(){ ["screen-book","screen-done","screen-driver","screen-launch"].forEach(function(s){ $(s).classList.add("hidden"); }); $("screen-home").classList.remove("hidden"); stopDriverLocPoll(); if(es){ try{es.close();}catch(e){} es=null; } liveCar=null; setHomeTexts(); }
+  function goToBooking(){ $("screen-home").classList.add("hidden"); $("screen-book").classList.remove("hidden"); if(!state.pickup&&!state.home) $("pickupPicker").classList.remove("hidden"); updateMap(); listenStatus(); startDriverLocPoll(); window.scrollTo(0,0); }
   function setHomeTexts(){
     if(!$("homeTitle")) return;
     $("homeTitle").textContent=(cfg.welcomeTitle&&cfg.welcomeTitle.trim())||t("homeTitle"); $("homeSub").textContent=(cfg.welcomeSub&&cfg.welcomeSub.trim())||t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
@@ -1754,6 +1792,7 @@
     $("storeNote").textContent=storageOK()?"Settings save on this device.":"⚠ This browser is blocking storage (private mode / opened from disk). Settings work for now but won't persist after closing — host the app to make them stick.";
     $("storeNote").className="mini-note"+(storageOK()?"":" warn-note");
     $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true;
+    if($("cfgDriverLocUrl")) $("cfgDriverLocUrl").value=cfg.driverLocUrl||"";
     if($("cfgHub")) $("cfgHub").value=cfg.hub||14;
     // pick-up points are shown/edited in the live #routeList (rendered by openRouteMap → renderRouteList)
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
@@ -1775,6 +1814,7 @@
     cfg.adminPin=$("cfgPin").value.trim()||"1234";
     cfg.homeEnabled=$("cfgHome").checked;
     cfg.waEnabled=$("cfgWa").checked;
+    if($("cfgDriverLocUrl")) cfg.driverLocUrl=$("cfgDriverLocUrl").value.trim();
     if(routeEdit&&routeEdit.length){
       recalcSegs();   // auto-fill only segments NOT manually typed (man flag); typed values are preserved
       cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); if(r.man) o.man=true; return o; });
@@ -1799,6 +1839,7 @@
     bMapSig=null;   // force the guide map to redraw with any edited names/positions/distances/hub
     renderAll();
     if($("qrGrid") && $("qrGrid").innerHTML.trim()) genQr();   // keep QR codes (one per point) in sync if already generated
+    startDriverLocPoll();  // (re)start polling the Telegram/live-location endpoint if one is set
     flash("saveSettings",t("saved"));
   }
   function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; cfg.route=[]; N=CHECKPOINTS.length; bMapSig=null; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
@@ -1857,7 +1898,7 @@
     try{ es=new EventSource(chanBase()+"/sse?since=30s"); }catch(e){ return; }
     es.onmessage=function(ev){ try{ var d=JSON.parse(ev.data); if(d&&d.event==="message"&&d.message){ var m=JSON.parse(d.message);
       if(m&&m.kind==="status"&&m.id===bookingId&&m.status!=="paid"&&m.status!=="cash") setResidentStatus(m.status);
-      if(m&&m.kind==="driverloc"&&m.lat!=null&&m.lng!=null) showDriverLoc(m.lat,m.lng);
+      if(m&&m.kind==="driverloc"&&m.lat!=null&&m.lng!=null){ liveCar={lat:m.lat,lng:m.lng}; onCarUpdate(); }
     } }catch(e){} };
   }
   function setResidentStatus(stKey){
@@ -1866,36 +1907,31 @@
     el.innerHTML=t("st_onway");
   }
   // ---- live driver location on the rider's screen ----
-  var dMap=null, dCar=null, dPickMk=null;
-  function showDriverLoc(lat,lng){
+  function onCarUpdate(){   // redraw the car wherever a guide map is showing
+    if(!$("screen-book").classList.contains("hidden")) updateMap();
+    if(!$("screen-done").classList.contains("hidden")) showDriverLoc();
+  }
+  // Optional: poll a Telegram-fed endpoint that serves the cart's latest {lat,lng}. Blank URL = rely on the in-app GPS share.
+  var driverLocTimer=null;
+  function startDriverLocPoll(){
+    if(driverLocTimer){ clearInterval(driverLocTimer); driverLocTimer=null; }
+    if(!cfg.driverLocUrl) return;
+    var poll=function(){ fetch(cfg.driverLocUrl,{cache:"no-store"}).then(function(r){ return r.json(); }).then(function(j){
+      if(!j) return; var la=(j.lat!=null)?j.lat:(j.latitude!=null?j.latitude:(j.location&&j.location.lat)); var ln=(j.lng!=null)?j.lng:(j.lon!=null?j.lon:(j.longitude!=null?j.longitude:(j.location&&(j.location.lng!=null?j.location.lng:j.location.lon))));
+      if(la!=null&&ln!=null){ liveCar={lat:Number(la),lng:Number(ln)}; onCarUpdate(); }
+    }).catch(function(){}); };
+    poll(); driverLocTimer=setInterval(poll,8000);
+  }
+  function stopDriverLocPoll(){ if(driverLocTimer){ clearInterval(driverLocTimer); driverLocTimer=null; } }
+  // After-booking: show the live cart on the SAME offline guide map (pickup + route + 🚗), no satellite needed.
+  function showDriverLoc(){
     var card=$("driverLocCard"); if(!card) return;
     card.classList.remove("hidden");
     if($("dlTitle")) $("dlTitle").textContent=t("dlTitle");
-    if($("dlNoteTxt")) $("dlNoteTxt").textContent=t("dlNote");
-    loadLeaflet(function(){
-      if(!window.L) return;
-      if(!dMap){
-        dMap=L.map('driverMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false});
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18}).addTo(dMap);
-      }
-      var carPos=[lat,lng];
-      if(!dCar){ dCar=L.marker(carPos,{icon:L.divIcon({className:'gg-pin gg-pin-lg car',html:'🚗',iconSize:[36,36],iconAnchor:[18,18]}),zIndexOffset:1200}).addTo(dMap); }
-      else dCar.setLatLng(carPos);
-      var pts=[carPos];
-      if(lastBooking && lastBooking.pickup && lastBooking.pickup!=="home"){
-        var pc=ptCoord(lastBooking.pickup);
-        if(!dPickMk){ dPickMk=L.marker(pc,{icon:bPinIcon(lastBooking.pickup,'pk'),zIndexOffset:1000}).addTo(dMap);
-          dPickMk.bindTooltip("📍 "+cpName(lastBooking.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); }
-        pts.push(pc);
-      }
-      dMap.fitBounds(L.latLngBounds(pts),{padding:[55,55],maxZoom:17});
-      setTimeout(function(){ try{ dMap.invalidateSize(); }catch(e){} },160);
-    });
+    if($("dlNoteTxt")) $("dlNoteTxt").textContent=liveCar?t("dlNote"):t("dlWait");
+    var box=$("driverMap"); if(box) box.innerHTML=guideSvgString();
   }
-  function resetDriverLoc(){
-    if(dMap){ if(dCar){ try{dMap.removeLayer(dCar);}catch(e){} dCar=null; } if(dPickMk){ try{dPickMk.unbindTooltip();dMap.removeLayer(dPickMk);}catch(e){} dPickMk=null; } }
-    var c=$("driverLocCard"); if(c) c.classList.add("hidden");
-  }
+  function resetDriverLoc(){ liveCar=null; var box=$("driverMap"); if(box) box.innerHTML=""; var c=$("driverLocCard"); if(c) c.classList.add("hidden"); }
   // ---- driver shares live location + finds nearest waiting resident (driver dashboard) ----
   var locWatch=null, lastLocPub=0, driverPos=null;
   function setShareLocText(){ var s=$("shareLocTxt"); if(s) s.textContent=(locWatch!=null)?t("locSharing"):t("locShare"); var b=$("shareLocBtn"); if(b) b.classList.toggle("on",locWatch!=null); }
@@ -2106,6 +2142,10 @@
     $("revBack").addEventListener("click",closeReview);
     $("reviewModal").addEventListener("click",function(e){ if(e.target===$("reviewModal")) closeReview(); });
     $("againBtn").addEventListener("click",resetBooking);
+    // Auto-confirm payment when the resident returns from the InstaPay tab (only after they actually left to pay).
+    document.addEventListener("visibilitychange",function(){ if(document.hidden){ if(awaitingPay) payLeft=true; } else if(awaitingPay && payLeft) markPaidSuccess(awaitingPay); });
+    window.addEventListener("blur",function(){ if(awaitingPay) payLeft=true; });
+    window.addEventListener("focus",function(){ if(awaitingPay && payLeft) markPaidSuccess(awaitingPay); });
     $("bookBack").addEventListener("click",showHome);
     $("doneBack").addEventListener("click",resetBooking);
     $("shareLocBtn").addEventListener("click",toggleShareLoc);
