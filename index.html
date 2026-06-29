@@ -754,12 +754,9 @@
           <span class="tg-label">💬 WhatsApp driver alert (turn on after WhatsApp API)</span>
           <label class="switch"><input type="checkbox" id="cfgWa" /><span class="slider"></span></label>
         </div>
-        <div class="sec-title">🛰️ Live tracking & ETA (Google Cloud)</div>
+        <div class="sec-title">🛰️ Live tracking & ETA</div>
         <div class="field">
-          <div class="desc">The cart's live position comes from the <b>driver's phone</b> (Driver page → <b>“Share my live location”</b>) — Google can't track a phone by itself. Google Cloud is used by your n8n flow for routing/ETA. The resident sees the 🚗 and the arrival ETA on the booking & after-booking maps.</div>
-          <label>Google Maps API key</label>
-          <div class="desc">Stored for your n8n Directions/ETA calls. Restrict it to Geocoding + Directions in Google Cloud.</div>
-          <input type="text" id="cfgGmapsKey" placeholder="AIza… (Google Maps Platform key)" />
+          <div class="desc">The cart's live position comes from the <b>driver's phone</b> (Driver page → <b>“Share my live location”</b>). The resident then sees the 🚗 and the arrival ETA on the booking &amp; after-booking maps. Tune the ETA with the cart speed and buffer below.</div>
         </div>
         <div class="g2">
           <div class="field"><label>Cart speed (km/h)</label><div class="desc">Used to estimate ETA.</div><input type="number" id="cfgCartSpeed" min="3" max="40" step="1" /></div>
@@ -966,7 +963,6 @@
     adminPin:"1234",                               // change this in Admin → Settings
     homeEnabled:false,                             // Premium/Home OFF until admin opens it in the panel
     waEnabled:false,                               // WhatsApp driver alert held until API ready
-    gmapsKey:"",                                   // Google Maps Platform API key (used server-side by n8n for ETA/Directions; editable in Admin)
     cartSpeed:14,                                  // average cart speed (km/h) — used to estimate ETA from the live distance
     etaBuffer:2,                                   // minutes added on top of the ETA as a buffer for the driver
     etaGreen:3,                                    // driver triage: a waiting ride is GREEN up to this many minutes
@@ -1813,7 +1809,6 @@
     $("storeNote").textContent=storageOK()?"Settings save on this device.":"⚠ This browser is blocking storage (private mode / opened from disk). Settings work for now but won't persist after closing — host the app to make them stick.";
     $("storeNote").className="mini-note"+(storageOK()?"":" warn-note");
     $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true;
-    if($("cfgGmapsKey")) $("cfgGmapsKey").value=cfg.gmapsKey||"";
     if($("cfgCartSpeed")) $("cfgCartSpeed").value=cfg.cartSpeed||14; if($("cfgEtaBuffer")) $("cfgEtaBuffer").value=(cfg.etaBuffer!=null?cfg.etaBuffer:2);
     if($("cfgEtaGreen")) $("cfgEtaGreen").value=cfg.etaGreen||3; if($("cfgEtaYellow")) $("cfgEtaYellow").value=cfg.etaYellow||7;
     if($("cfgHub")) $("cfgHub").value=cfg.hub||14;
@@ -1837,7 +1832,6 @@
     cfg.adminPin=$("cfgPin").value.trim()||"1234";
     cfg.homeEnabled=$("cfgHome").checked;
     cfg.waEnabled=$("cfgWa").checked;
-    if($("cfgGmapsKey")) cfg.gmapsKey=$("cfgGmapsKey").value.trim();
     if($("cfgCartSpeed")) cfg.cartSpeed=Math.max(3,Number($("cfgCartSpeed").value)||14);
     if($("cfgEtaBuffer")) cfg.etaBuffer=Math.max(0,Number($("cfgEtaBuffer").value)||0);
     if($("cfgEtaGreen")) cfg.etaGreen=Math.max(1,Number($("cfgEtaGreen").value)||3);
