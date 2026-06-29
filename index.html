@@ -5,27 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#1f9a48" />
 <title>GoGolfy — Scan to Ride</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --green:#1f9a48; --green-dark:#0e6e37; --green-light:#e8f7ee; --brand:#2ea24e;
     --accent:#ffd23f; --ink:#15241c; --muted:#6b7c73; --line:#e2eae5;
     --bg:#f4f8f5; --white:#ffffff; --danger:#c0392b;
     --band1:#2e9e5b; --band2:#e0a106; --band3:#d8662a;
-    --radius:16px; --shadow:0 6px 24px rgba(11,122,59,.12);
+    --radius:18px; --shadow:0 10px 30px rgba(11,122,59,.13); --shadow-sm:0 2px 12px rgba(11,90,45,.06);
+    --font:"Cairo",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     font-size:16px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;}
+  body{font-family:var(--font);
+    background:radial-gradient(120% 60% at 50% -10%,#eaf6ee 0%,var(--bg) 46%) no-repeat,var(--bg);
+    color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  h1,h2,h3{letter-spacing:-.01em;}
   .wrap{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
 
-  header{background:linear-gradient(135deg,var(--brand),var(--green-dark));color:#fff;padding:16px 18px 22px;
-    position:relative;border-bottom-left-radius:24px;border-bottom-right-radius:24px;box-shadow:var(--shadow);}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.4rem;letter-spacing:.3px;justify-content:center;}
+  header{background:linear-gradient(135deg,#34b25a,var(--green),var(--green-dark));color:#fff;padding:18px 18px 24px;
+    position:relative;border-bottom-left-radius:26px;border-bottom-right-radius:26px;box-shadow:var(--shadow);overflow:hidden;}
+  header:before{content:"";position:absolute;top:-60px;inset-inline-end:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.10);}
+  header:after{content:"";position:absolute;bottom:-70px;inset-inline-start:-20px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,.06);}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:900;font-size:1.5rem;letter-spacing:-.01em;justify-content:center;position:relative;}
   .brand .cart{font-size:1.7rem;}
-  .compound{opacity:.95;font-size:.9rem;margin-top:3px;font-weight:600;text-align:center;}
-  .tagline{opacity:.82;font-size:.76rem;margin-top:1px;text-align:center;}
+  .compound{opacity:.96;font-size:.92rem;margin-top:4px;font-weight:700;text-align:center;position:relative;}
+  .tagline{opacity:.85;font-size:.76rem;margin-top:2px;text-align:center;position:relative;letter-spacing:.02em;}
   .hbtn{position:absolute;top:16px;background:rgba(255,255,255,.18);border:none;color:#fff;height:36px;min-width:36px;padding:0 10px;
     border-radius:18px;font-size:.95rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
   .hbtn:active{background:rgba(255,255,255,.32);}
@@ -37,8 +45,8 @@
   .nav-back:active{background:var(--green-light);}
   .nav-back .arr{display:inline-block;font-size:1.05rem;line-height:1;}
   [dir="rtl"] .nav-back .arr{transform:scaleX(-1);}
-  .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.03);}
-  .label{font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:14px;box-shadow:var(--shadow-sm);}
+  .label{font-size:.74rem;text-transform:uppercase;letter-spacing:.6px;color:var(--green-dark);font-weight:800;margin-bottom:11px;display:flex;align-items:center;gap:7px;}
 
   .pickup-box{display:flex;align-items:center;gap:14px;}
   .pin{background:var(--green-light);color:var(--green-dark);border-radius:14px;width:60px;height:60px;
@@ -82,8 +90,8 @@
   .band-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:4px;vertical-align:middle;}
 
   .confirm-btn{width:100%;padding:18px;border:none;border-radius:var(--radius);font-size:1.15rem;font-weight:800;
-    background:var(--green);color:#fff;cursor:pointer;box-shadow:var(--shadow);letter-spacing:.3px;display:flex;align-items:center;justify-content:center;gap:10px;}
-  .confirm-btn:active{background:var(--green-dark);}
+    background:linear-gradient(135deg,#2bb158,var(--green) 60%,var(--green-dark));color:#fff;cursor:pointer;box-shadow:0 10px 24px rgba(15,110,55,.32);letter-spacing:.2px;display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .12s,box-shadow .12s;}
+  .confirm-btn:active{transform:translateY(1px);box-shadow:0 5px 14px rgba(15,110,55,.3);}
   .confirm-btn:disabled{background:#b9c7bf;box-shadow:none;cursor:default;}
   .hint{text-align:center;font-size:.8rem;color:var(--muted);margin-top:10px;}
 
@@ -196,8 +204,11 @@
   .dash-empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:.95rem;}
 
   /* logo */
-  .logo-cart{height:34px;width:auto;flex:0 0 auto;}
-  .brand-text{font-weight:800;font-size:1.45rem;letter-spacing:.3px;}
+  .logo-cart{height:36px;width:auto;flex:0 0 auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.15));}
+  .brand-text{font-weight:900;font-size:1.5rem;letter-spacing:-.01em;}
+  /* confirmation brand lockup */
+  .done-brand{margin:0 0 4px;}
+  .done-logo{max-width:170px;width:58%;height:auto;display:block;margin:0 auto;}
   /* compound map (Leaflet) */
   #mapBox{width:100%;height:300px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
   .map-hint{font-size:.74rem;color:var(--muted);text-align:center;margin-top:8px;}
@@ -514,6 +525,7 @@
     <section id="screen-done" class="hidden">
       <button class="nav-back" id="doneBack"><span class="arr">←</span><span id="doneBackTxt">Back to booking</span></button>
       <div class="confirmation">
+        <div class="done-brand"><img class="done-logo" data-logo alt="GoGolfy" /></div>
         <div class="tick">✓</div>
         <h2 id="doneTitle">Ride Requested!</h2>
         <p class="lead" id="doneLead"></p>
@@ -709,7 +721,7 @@
         </div>
         <div class="field">
           <label>Pick-up points & route</label>
-          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Tap a <b>＋</b> to add a road corner and drag it onto the road. Routes between pick-up points <b>follow the sequence</b> through the in-between points (e.g. 1→2→…→13), in either direction; the <b>hub</b> point goes direct to/from any point. Distances recalculate automatically.</div>
+          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Tap a <b>＋</b> to add a road corner and drag it onto the road. Routes between pick-up points <b>follow the sequence</b> through the in-between points (e.g. 1→2→3→…), in either direction; the <b>hub</b> point goes direct to/from any point. Distances recalculate automatically.</div>
           <button type="button" class="save-btn" id="addPoint" style="margin:0 0 10px;background:var(--green-dark);">➕ Add pick-up point</button>
           <div id="routeMap"></div>
           <div class="rl-head"><span>#</span><span>Name</span><span>→ next (m)</span><span></span></div>
@@ -1745,6 +1757,7 @@
     if(state.residents>cfg.maxRes) state.residents=cfg.maxRes;
     bMapSig=null;   // force the guide map to redraw with any edited names/positions/distances/hub
     renderAll();
+    if($("qrGrid") && $("qrGrid").innerHTML.trim()) genQr();   // keep QR codes (one per point) in sync if already generated
     flash("saveSettings",t("saved"));
   }
   function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; cfg.route=[]; N=CHECKPOINTS.length; bMapSig=null; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
@@ -2013,11 +2026,18 @@
   function beep(){ try{ var a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain(); o.connect(g); g.connect(a.destination); o.type="sine"; o.frequency.value=880; g.gain.value=.12; o.start(); setTimeout(function(){o.frequency.value=1175;},120); setTimeout(function(){o.stop();a.close();},260); }catch(e){} }
 
   function initLogo(){
-    var img=$("homeLogoImg"), fb=$("homeLogoFallback"); if(!img) return;
+    var home=$("homeLogoImg"), fb=$("homeLogoFallback");
+    var others=document.querySelectorAll("img[data-logo]");
     var cands=["Logo.png","logo.png","GoGolfy.jpg","gogolfy.jpg"], i=0;
-    img.onload=function(){ if(img.naturalWidth>1){ fb.style.display="none"; img.style.display=""; } };
-    img.onerror=function(){ if(i<cands.length){ img.src=cands[i++]; } else { img.style.display="none"; fb.style.display=""; } };
-    img.src=cands[i++];
+    function apply(src){
+      if(home){ home.src=src; home.style.display=""; if(fb) fb.style.display="none"; }
+      for(var k=0;k<others.length;k++){ others[k].src=src; others[k].style.display=""; }
+    }
+    function fail(){ if(home){ home.style.display="none"; if(fb) fb.style.display=""; } for(var k=0;k<others.length;k++) others[k].style.display="none"; }
+    var test=new Image();
+    test.onload=function(){ if(test.naturalWidth>1) apply(test.src); else test.onerror(); };
+    test.onerror=function(){ if(i<cands.length){ test.src=cands[i++]; } else { fail(); } };
+    test.src=cands[i++];
   }
   function tickClock(){
     var d=new Date(), loc=(lang==="ar")?"ar-EG":"en-GB", txt;
