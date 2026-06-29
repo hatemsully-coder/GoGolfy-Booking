@@ -709,7 +709,7 @@
         </div>
         <div class="field">
           <label>Pick-up points & route</label>
-          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Tap a <b>＋</b> to add a road corner and drag it onto the road. Routes between pick-up points <b>follow the sequence</b> through the in-between points (e.g. 1→2→…→11), in either direction; the <b>hub</b> point goes direct to/from any point. Distances recalculate automatically.</div>
+          <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Tap a <b>＋</b> to add a road corner and drag it onto the road. Routes between pick-up points <b>follow the sequence</b> through the in-between points (e.g. 1→2→…→13), in either direction; the <b>hub</b> point goes direct to/from any point. Distances recalculate automatically.</div>
           <button type="button" class="save-btn" id="addPoint" style="margin:0 0 10px;background:var(--green-dark);">➕ Add pick-up point</button>
           <div id="routeMap"></div>
           <div class="rl-head"><span>#</span><span>Name</span><span>→ next (m)</span><span></span></div>
@@ -795,7 +795,7 @@
       </div>
 
       <div id="tab-qr" class="hidden">
-        <div class="mini-note">Paste your hosted app URL, then Generate. You get a QR + shareable link for each of the 12 pick-up points, plus a Home-pickup QR and an Admin-dashboard QR. Print and place one at each pick-up point.</div>
+        <div class="mini-note">Paste your hosted app URL, then Generate. You get a QR + shareable link for each pick-up point, plus a Home-pickup QR and an Admin-dashboard QR. Print and place one at each pick-up point.</div>
         <div class="field">
           <label>App base URL (where this page is hosted)</label>
           <input type="text" id="cfgBaseUrl" placeholder="https://yoursite.netlify.app/" />
@@ -859,22 +859,28 @@
   function storageOK(){ try{ var t="__t"; localStorage.setItem(t,"1"); localStorage.removeItem(t); return true; }catch(e){ return false; } }
 
   // ---- checkpoints: display order + names + underlying CP (for distance) ----
+  // Dar Masr Al Andalous — Phase 2. Points 1–13 = pick-up/destination loop; point 14 = hub/depot (off-loop, direct).
+  // Coordinates are a SCHEMATIC layout for the offline guide map (drag-editable in Admin); the real cart distances
+  // live in DEFAULT_SEG below (road distances supplied by the operator), pinned so they're never auto-overwritten.
   var CHECKPOINTS=[
-    {cp:7,  en:"Gate 1",            ar:"بوابة 1",        lat:29.973550, lng:31.532400},
-    {cp:6,  en:"Pick Up Point 2",  ar:"نقطة استلام 2",  lat:29.973950, lng:31.529900},
-    {cp:5,  en:"Gate 2",            ar:"بوابة 2",        lat:29.973650, lng:31.527500},
-    {cp:4,  en:"Pick Up Point 4",  ar:"نقطة استلام 4",  lat:29.974050, lng:31.525200},
-    {cp:3,  en:"Gate 3",            ar:"بوابة 3",        lat:29.974200, lng:31.523200},
-    {cp:2,  en:"Pick Up Point 6",  ar:"نقطة استلام 6",  lat:29.973750, lng:31.521700},
-    {cp:1,  en:"Walk Gate",         ar:"بوابة المشاة",   lat:29.972945, lng:31.520366},
-    {cp:12, en:"Pick Up Point 8",  ar:"نقطة استلام 8",  lat:29.971500, lng:31.522800},
-    {cp:11, en:"Pick Up Point 9",  ar:"نقطة استلام 9",  lat:29.971250, lng:31.525600},
-    {cp:10, en:"Gate 4",            ar:"بوابة 4",        lat:29.971300, lng:31.528200},
-    {cp:9,  en:"Pick Up Point 11", ar:"نقطة استلام 11", lat:29.971300, lng:31.530400},
-    {cp:8,  en:"Pick Up Point 12", ar:"نقطة استلام 12", lat:29.971950, lng:31.532800}
+    {cp:1,  en:"Gate 1",                       ar:"بوابة 1",                       lat:29.97380, lng:31.53240},
+    {cp:2,  en:"Building 131",                 ar:"مبنى 131",                      lat:29.97395, lng:31.53050},
+    {cp:3,  en:"Gate 2",                       ar:"بوابة 2",                       lat:29.97400, lng:31.52850},
+    {cp:4,  en:"Building 244",                 ar:"مبنى 244",                      lat:29.97410, lng:31.52650},
+    {cp:5,  en:"Gate 3",                       ar:"بوابة 3",                       lat:29.97415, lng:31.52450},
+    {cp:6,  en:"Building 326",                 ar:"مبنى 326",                      lat:29.97400, lng:31.52270},
+    {cp:7,  en:"Walkers Gate · Zone 3 Mosque", ar:"بوابة المشاة · مسجد المنطقة 3", lat:29.97320, lng:31.52080},
+    {cp:8,  en:"Building 359",                 ar:"مبنى 359",                      lat:29.97180, lng:31.52120},
+    {cp:9,  en:"Building 167",                 ar:"مبنى 167",                      lat:29.97140, lng:31.52380},
+    {cp:10, en:"Gate 4",                       ar:"بوابة 4",                       lat:29.97130, lng:31.52650},
+    {cp:11, en:"Building 146",                 ar:"مبنى 146",                      lat:29.97135, lng:31.52900},
+    {cp:12, en:"Building 81",                  ar:"مبنى 81",                       lat:29.97150, lng:31.53120},
+    {cp:13, en:"Zone 1 Mosque (Al-Wahid Al-Ahad)", ar:"مسجد المنطقة الأولى (الواحد الأحد)", lat:29.97250, lng:31.53270},
+    {cp:14, en:"Hub · Building 237",           ar:"المحطة · مبنى 237",             lat:29.97270, lng:31.52330}
   ];
-  // distance (m) from each point to the NEXT around the loop — built-in defaults; admin can edit via cfg.route
-  var DEFAULT_SEG=[265,265,230,210,165,170,310,295,270,230,250,195];
+  // distance (m) from each point to the NEXT around the loop — operator-supplied road distances (point i → i+1).
+  // [11]=P12→P13 and [12],[13] (hub edges) are estimates: hub uses straight-line direct, P13→P1 closes via geometry.
+  var DEFAULT_SEG=[400,400,400,400,500,350,400,500,300,400,500,400,400,1100];
   var N=CHECKPOINTS.length;  // recomputed from cfg.route after cfg loads
   function segOf(i){ if(cfg.route&&cfg.route[i-1]) return Number(cfg.route[i-1].seg)||0; return DEFAULT_SEG[i-1]||0; }
   function viaOf(i){ var r=cfg.route&&cfg.route[i-1]; return (r&&r.via&&r.via.length)?r.via:[]; }  // road bends from point i to next (1-based)
@@ -888,7 +894,7 @@
     priv:[20,25,30],         // Private per person by distance band
     mix:[25,25,20],          // Group ride per person: 2 people→25, 3+→20 (flat, any destination)
     prem:[50,40,30],         // Premium per person for 1 / 2 / 3+
-    hub:12,                  // hub/depot point: goes direct to/from any point; other points follow the sequence
+    hub:14,                  // hub/depot point: goes direct to/from any point; other points follow the sequence
     baseUrl:"https://gogolfy.net/",               // your domain (used for QR codes & driver link)
     payLink:"https://ipn.eg/S/hatemsully/instapay/4T6VhV",
     channel:"gogolfy-darmasr-andalous-7K3p9Qx2",  // shared live channel (same on all devices)
@@ -910,6 +916,8 @@
   function loadCfg(){ try{ return Object.assign({},DEFAULTS,JSON.parse(lsGet(LS_CFG))||{}); }catch(e){ return Object.assign({},DEFAULTS); } }
   function saveCfg(){ lsSet(LS_CFG,JSON.stringify(cfg)); }
   var cfg=loadCfg();
+  // one-time migration to the 14-point Andalous Phase-2 layout (replaces any saved 12-point route; keeps fares/phone)
+  if(cfg.routeVer!==2){ cfg.route=[]; cfg.hub=14; cfg.routeVer=2; saveCfg(); }
   N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
   var lang=lsGet(LS_LANG)||"ar";
 
@@ -1443,6 +1451,7 @@
     $("homeTitle").textContent=(cfg.welcomeTitle&&cfg.welcomeTitle.trim())||t("homeTitle"); $("homeSub").textContent=(cfg.welcomeSub&&cfg.welcomeSub.trim())||t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
     $("heroBadge").textContent=comp();
     ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT","homeStepsT","chip1","chip2","chip3","chip4"].forEach(function(k){ $(k).textContent=t(k); });
+    if($("chip3")){ var h=hubIdx(), nPk=0; for(var ci=1;ci<=N;ci++){ if(ci!==h) nPk++; } $("chip3").textContent=(lang==="ar")?("📍 "+nPk+" نقطة انطلاق"):("📍 "+nPk+" pick-up points"); }
     var u=cur();
     var rows=[[typeName("private"), cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+" "+u]];
     rows.push([typeName("mixed"), cfg.mix[1]+"/"+cfg.mix[2]+" "+u]);
@@ -1605,7 +1614,7 @@
   }
   function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
   function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
-  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
+  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); var sv=(cfg.route&&cfg.route[i-1])||null; routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), man:(sv?!!sv.man:true), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
   function reSegPath(idx){ var n=routeEdit.length, a=routeEdit[idx], b=routeEdit[(idx+1)%n]; var pts=[[a.lat,a.lng]]; (a.via||[]).forEach(function(p){pts.push(p);}); pts.push([b.lat,b.lng]); return pts; }
   function pathLen(pts){ var d=0; for(var k=1;k<pts.length;k++) d+=haversine(pts[k-1],pts[k]); return d; }
   function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ if(routeEdit[i].man) continue; var hasVia=(routeEdit[i].via&&routeEdit[i].via.length); var d=pathLen(reSegPath(i))*(hasVia?1:1.25); routeEdit[i].seg=Math.round(d/5)*5; } }
@@ -1663,7 +1672,7 @@
     m.bindPopup('<div class="rp-pop"><input id="rpName" value="'+esc(r.name)+'" placeholder="Pick-up point name"/>'
       +'<div class="rp-row"><button id="rpUp" title="Move earlier">⬆</button><button id="rpDown" title="Move later">⬇</button><button id="rpDel" class="rp-del">🗑 Delete</button></div></div>').openPopup();
     setTimeout(function(){
-      var ni=document.getElementById('rpName'); if(ni){ ni.focus(); ni.oninput=function(){ routeEdit[idx].name=ni.value; $("cfgLabels").value=routeEditToText(); m.setTooltipContent((idx+1)+" · "+ni.value); }; }
+      var ni=document.getElementById('rpName'); if(ni){ ni.focus(); ni.oninput=function(){ routeEdit[idx].name=ni.value; renderRouteList(); m.setTooltipContent((idx+1)+" · "+ni.value); }; }
       var del=document.getElementById('rpDel'); if(del) del.onclick=function(){ if(routeEdit.length<=2){ alert("Keep at least 2 pick-up points."); return; } routeEdit.splice(idx,1); m.closePopup(); refreshRoute(); };
       var up=document.getElementById('rpUp'); if(up) up.onclick=function(){ if(idx<=0) return; var t=routeEdit[idx-1]; routeEdit[idx-1]=routeEdit[idx]; routeEdit[idx]=t; m.closePopup(); refreshRoute(); };
       var dn=document.getElementById('rpDown'); if(dn) dn.onclick=function(){ if(idx>=routeEdit.length-1) return; var t=routeEdit[idx+1]; routeEdit[idx+1]=routeEdit[idx]; routeEdit[idx]=t; m.closePopup(); refreshRoute(); };
@@ -1692,9 +1701,8 @@
     $("storeNote").textContent=storageOK()?"Settings save on this device.":"⚠ This browser is blocking storage (private mode / opened from disk). Settings work for now but won't persist after closing — host the app to make them stick.";
     $("storeNote").className="mini-note"+(storageOK()?"":" warn-note");
     $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true;
-    if($("cfgHub")) $("cfgHub").value=cfg.hub||12;
-    var rt=(cfg.route&&cfg.route.length)?cfg.route:CHECKPOINTS.map(function(c,i){ return {name:c.en, seg:DEFAULT_SEG[i]}; });
-    $("cfgLabels").value=rt.map(function(r){ return r.name+" | "+r.seg; }).join("\n");
+    if($("cfgHub")) $("cfgHub").value=cfg.hub||14;
+    // pick-up points are shown/edited in the live #routeList (rendered by openRouteMap → renderRouteList)
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
     $("cfgP1").value=cfg.priv[0]; $("cfgP2").value=cfg.priv[1]; $("cfgP3").value=cfg.priv[2];
     $("cfgM2").value=cfg.mix[1]; $("cfgM3").value=cfg.mix[2];
@@ -1710,14 +1718,13 @@
   function saveSettings(){
     cfg.phone=$("cfgPhone").value.replace(/[^0-9]/g,"");
     cfg.maxRes=Math.max(1,parseInt($("cfgMaxRes").value,10)||6);
-    if($("cfgHub")){ var hb=parseInt($("cfgHub").value,10); cfg.hub=(hb>=1)?hb:12; }
+    if($("cfgHub")){ var hb=parseInt($("cfgHub").value,10); cfg.hub=(hb>=1)?hb:14; }
     cfg.adminPin=$("cfgPin").value.trim()||"1234";
     cfg.homeEnabled=$("cfgHome").checked;
     cfg.waEnabled=$("cfgWa").checked;
     if(routeEdit&&routeEdit.length){
-      recalcSegs();
-      recalcSegs();
-      cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); return o; });
+      recalcSegs();   // auto-fill only segments NOT manually typed (man flag); typed values are preserved
+      cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); if(r.man) o.man=true; return o; });
     }
     cfg.labels=[];
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
