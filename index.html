@@ -139,7 +139,8 @@
   .field input:focus,.field select:focus{outline:none;border-color:var(--green);}
   .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-  .save-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-weight:800;font-size:1rem;cursor:pointer;margin-top:6px;}
+  .save-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--green);color:#fff;font-weight:800;font-size:1rem;cursor:pointer;margin-top:6px;transition:background .15s;}
+  .save-btn.saved{background:var(--green-light);color:var(--green-dark);box-shadow:inset 0 0 0 1.5px #bfe6cd;}   /* clean state: nothing to save */
   .mini-note{font-size:.75rem;color:var(--muted);background:var(--green-light);border-radius:10px;padding:10px 12px;margin-bottom:14px;}
   .warn-note{background:#fff6e5;color:#8a6300;}
   .sec-title{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--green-dark);font-weight:800;margin:16px 0 8px;}
@@ -1012,7 +1013,7 @@
       t_private:"Single ride", d_private:"Just your group · by distance",
       t_mixed:"Group ride", d_mixed:"Shared with others · per person",
       t_premium:"Premium", d_premium:"Home / door-to-door",
-      each:"each", flat:"flat", saved:"✓ Saved", curr:"EGP",
+      each:"each", flat:"flat", saved:"✓ Saved", saveBtn:"💾 Save settings", curr:"EGP",
       msgTitle:"GoGolfy Ride Request", msgWaiting:"A resident is waiting. Please proceed to pickup.",
       msgConfirm:"👉 Open to accept the ride:", pinPrompt:"Enter admin PIN", pinWrong:"Wrong PIN",
       launchTitle:"Launching Soon", launchSub:"GoGolfy is getting ready to roll out in Dar Masr Al Andalous. We'll be live very soon — stay tuned!", launchTag:"Your ride inside.", launchWa:"💬 Contact us on WhatsApp",
@@ -1066,7 +1067,7 @@
       t_private:"رحلة فردية", d_private:"لمجموعتك فقط · حسب المسافة",
       t_mixed:"رحلة جماعية", d_mixed:"مشتركة مع آخرين · للفرد",
       t_premium:"بريميوم", d_premium:"من المنزل / من الباب للباب",
-      each:"للفرد", flat:"ثابت", saved:"✓ تم الحفظ", curr:"ج.م",
+      each:"للفرد", flat:"ثابت", saved:"✓ تم الحفظ", saveBtn:"💾 حفظ الإعدادات", curr:"ج.م",
       msgTitle:"طلب رحلة GoGolfy", msgWaiting:"أحد السكان في الانتظار. الرجاء التوجه لنقطة الانطلاق.",
       msgConfirm:"👉 افتح لقبول الرحلة:", pinPrompt:"أدخل رمز المشرف", pinWrong:"رمز غير صحيح",
       launchTitle:"قريبًا الإطلاق", launchSub:"GoGolfy على وشك الانطلاق في دار مصر الأندلس. سنكون متاحين قريبًا جدًا — ترقّبوا!", launchTag:"رحلتك في الداخل.", launchWa:"💬 تواصل معنا على واتساب",
@@ -1746,7 +1747,7 @@
   function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } rLine=L.polyline(reLoopCoords(),{color:'#1f9a48',weight:4,opacity:.95,lineJoin:'round'}).addTo(rMap); }
   function routeVertices(){ var V=[]; for(var i=0;i<routeEdit.length;i++){ V.push({ll:[routeEdit[i].lat,routeEdit[i].lng],kind:'pt',i:i}); (routeEdit[i].via||[]).forEach(function(p,vi){ V.push({ll:p,kind:'via',i:i,vi:vi}); }); } return V; }
   function clearRouteMarkers(){ [rMarkers,rViaMk,rAddMk].forEach(function(arr){ arr.forEach(function(m){ try{rMap.removeLayer(m);}catch(e){} }); }); rMarkers=[]; rViaMk=[]; rAddMk=[]; }
-  function refreshRoute(){ recalcSegs(); renderRouteList(); drawRouteLine(); renderRouteMarkers(); }
+  function refreshRoute(){ recalcSegs(); renderRouteList(); drawRouteLine(); renderRouteMarkers(); setSaveState(false); }
   function renderRouteMarkers(){
     if(!rMap||!window.L) return; clearRouteMarkers();
     routeEdit.forEach(function(r,idx){
@@ -1826,6 +1827,7 @@
     $("cfgWelTitle").value=cfg.welcomeTitle||""; $("cfgWelSub").value=cfg.welcomeSub||"";
     $("cfgCompound").value=cfg.compound||""; $("cfgCurrency").value=cfg.currency||"";
     $("cfgBaseUrl").value=cfg.baseUrl||"";
+    setSaveState(true);   // panel opens in the "Saved" state (no unsaved changes yet)
   }
   function numv(id,d){ var v=Number($(id).value); return isNaN(v)?d:v; }
   function saveSettings(){
@@ -1863,9 +1865,10 @@
     bMapSig=null;   // force the guide map to redraw with any edited names/positions/distances/hub
     renderAll();
     if($("qrGrid") && $("qrGrid").innerHTML.trim()) genQr();   // keep QR codes (one per point) in sync if already generated
-    startDriverLocPoll();  // (re)start polling the Telegram/live-location endpoint if one is set
-    flash("saveSettings",t("saved"));
+    setSaveState(true);   // mark Saved — stays "✓ Saved" until the next change is made
   }
+  // Save button reflects unsaved changes: "✓ Saved" when clean, "💾 Save settings" once anything changes.
+  function setSaveState(saved){ var b=$("saveSettings"); if(!b) return; b.textContent=saved?t("saved"):t("saveBtn"); b.classList.toggle("saved",!!saved); }
   function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; cfg.route=[]; N=CHECKPOINTS.length; bMapSig=null; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
   function flash(id,txt){ var el=$(id); var old=el.textContent; el.textContent=txt; setTimeout(function(){ el.textContent=old; },1400); }
   function defaultBaseUrl(){ return location.protocol==="file:"?"":(location.origin+location.pathname); }
@@ -2205,6 +2208,7 @@
     $("adminOverlay").addEventListener("click",function(e){ if(e.target===$("adminOverlay")) closeAdmin(); });
     document.querySelectorAll(".tab").forEach(function(tb){ tb.addEventListener("click",function(){ switchTab(tb.getAttribute("data-tab")); }); });
     $("saveSettings").addEventListener("click",saveSettings);
+    if($("tab-settings")){ var dirty=function(){ setSaveState(false); }; $("tab-settings").addEventListener("input",dirty); $("tab-settings").addEventListener("change",dirty); }   // any edit → "Save settings" reappears
     $("addPoint").addEventListener("click",addRoutePoint);
     $("resetSettings").addEventListener("click",resetSettings);
     $("previewApp").addEventListener("click",function(){ try{ sessionStorage.setItem("gg_preview","1"); }catch(e){} location.href=location.pathname; });
