@@ -305,7 +305,14 @@
   .hero-badge{position:relative;display:inline-block;background:var(--green);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.5px;padding:6px 14px;border-radius:20px;margin:8px 0 6px;box-shadow:var(--shadow);}
   .home .hero h1{position:relative;font-size:2rem;color:var(--green-dark);margin:6px 0 6px;font-weight:800;line-height:1.15;}
   .home .hero p{position:relative;color:var(--muted);margin:0 auto 18px;max-width:330px;font-size:1.02rem;line-height:1.5;}
-  .home .cta{position:relative;width:100%;background:linear-gradient(135deg,var(--brand),var(--green-dark));font-size:1.15rem;padding:17px;box-shadow:0 10px 24px rgba(11,122,59,.28);}
+  .home .cta{position:relative;width:100%;background:linear-gradient(135deg,var(--brand),var(--green-dark));font-size:1.18rem;padding:18px;box-shadow:0 10px 24px rgba(11,122,59,.28);animation:ctaPulse 2.4s ease-in-out infinite;}
+  @keyframes ctaPulse{0%,100%{box-shadow:0 10px 24px rgba(11,122,59,.28)}50%{box-shadow:0 12px 30px rgba(11,122,59,.42),0 0 0 5px rgba(46,162,78,.16)}}
+  /* "tap here" guidance — tells the resident exactly where to click */
+  .cta-hint{position:relative;display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:.84rem;color:var(--green-dark);
+    background:#fff;border:1.5px solid var(--green);border-radius:22px;padding:7px 15px;margin:4px 0 10px;box-shadow:0 3px 12px rgba(11,122,59,.14);animation:hintBob 1.7s ease-in-out infinite;}
+  @keyframes hintBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .dest-hint{font-size:.82rem;font-weight:700;color:var(--green-dark);background:var(--green-light);border-radius:10px;padding:9px 12px;margin-bottom:11px;display:flex;align-items:center;gap:7px;}
+  .dest-hint.done{background:#eef4ee;color:var(--muted);font-weight:600;}
   .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:16px;position:relative;}
   .chip{background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 12px;font-size:.76rem;font-weight:700;color:var(--green-dark);box-shadow:0 1px 5px rgba(0,0,0,.05);}
   .home-sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.8px;color:var(--green-dark);font-weight:800;margin:22px 4px 8px;text-align:center;}
@@ -467,6 +474,7 @@
 
       <div class="card">
         <div class="label" id="lblDest">🎯 Destination</div>
+        <div class="dest-hint" id="destHint"></div>
         <div class="grid" id="destGrid"></div>
       </div>
 
@@ -565,6 +573,7 @@
           <div class="hero-badge" id="heroBadge">Dar Masr Al Andalous</div>
           <h1 id="homeTitle">Need a ride?</h1>
           <p id="homeSub"></p>
+          <div class="cta-hint" id="ctaHint"></div>
           <button class="confirm-btn cta" id="homeBook">🛺 <span id="homeBookTxt">Book a ride</span></button>
           <div class="chips">
             <span class="chip" id="chip1"></span>
@@ -874,21 +883,23 @@
   // Dar Masr Al Andalous — Phase 2. Points 1–13 = pick-up/destination loop; point 14 = hub/depot (off-loop, direct).
   // Coordinates are a SCHEMATIC layout for the offline guide map (drag-editable in Admin); the real cart distances
   // live in DEFAULT_SEG below (road distances supplied by the operator), pinned so they're never auto-overwritten.
+  // Coordinates anchored to OpenStreetMap reality (Fifth Settlement, New Cairo). "real" = exact OSM coordinate;
+  // "≈" = interpolated between real anchors onto the real footprint (drag on the satellite editor to fine-tune).
   var CHECKPOINTS=[
-    {cp:1,  en:"Gate 1",                       ar:"بوابة 1",                       lat:29.97380, lng:31.53240},
-    {cp:2,  en:"Building 131",                 ar:"مبنى 131",                      lat:29.97395, lng:31.53050},
-    {cp:3,  en:"Gate 2",                       ar:"بوابة 2",                       lat:29.97400, lng:31.52850},
-    {cp:4,  en:"Building 244",                 ar:"مبنى 244",                      lat:29.97410, lng:31.52650},
-    {cp:5,  en:"Gate 3",                       ar:"بوابة 3",                       lat:29.97415, lng:31.52450},
-    {cp:6,  en:"Building 326",                 ar:"مبنى 326",                      lat:29.97400, lng:31.52270},
-    {cp:7,  en:"Walkers Gate · Zone 3 Mosque", ar:"بوابة المشاة · مسجد المنطقة 3", lat:29.97320, lng:31.52080},
-    {cp:8,  en:"Building 359",                 ar:"مبنى 359",                      lat:29.97180, lng:31.52120},
-    {cp:9,  en:"Building 167",                 ar:"مبنى 167",                      lat:29.97140, lng:31.52380},
-    {cp:10, en:"Gate 4",                       ar:"بوابة 4",                       lat:29.97130, lng:31.52650},
-    {cp:11, en:"Building 146",                 ar:"مبنى 146",                      lat:29.97135, lng:31.52900},
-    {cp:12, en:"Building 81",                  ar:"مبنى 81",                       lat:29.97150, lng:31.53120},
-    {cp:13, en:"Zone 1 Mosque (Al-Wahid Al-Ahad)", ar:"مسجد المنطقة الأولى (الواحد الأحد)", lat:29.97250, lng:31.53270},
-    {cp:14, en:"Hub · Building 237",           ar:"المحطة · مبنى 237",             lat:29.97270, lng:31.52330}
+    {cp:1,  en:"Gate 1",                       ar:"بوابة 1",                       lat:29.97320, lng:31.53550},   // ≈ interp (NE)
+    {cp:2,  en:"Building 131",                 ar:"مبنى 131",                      lat:29.97320, lng:31.53400},   // ≈ interp
+    {cp:3,  en:"Gate 2",                       ar:"بوابة 2",                       lat:29.97310, lng:31.53247},   // real OSM gate
+    {cp:4,  en:"Building 244",                 ar:"مبنى 244",                      lat:29.97310, lng:31.52860},   // ≈ interp
+    {cp:5,  en:"Gate 3",                       ar:"بوابة 3",                       lat:29.97308, lng:31.52471},   // real OSM gate
+    {cp:6,  en:"Building 326",                 ar:"مبنى 326",                      lat:29.97180, lng:31.52300},   // ≈ interp
+    {cp:7,  en:"Walkers Gate · Zone 3 Mosque", ar:"بوابة المشاة · مسجد المنطقة 3", lat:29.97067, lng:31.52187},   // real OSM mosque (likely Zone 3)
+    {cp:8,  en:"Building 359",                 ar:"مبنى 359",                      lat:29.96920, lng:31.52150},   // ≈ interp
+    {cp:9,  en:"Building 167",                 ar:"مبنى 167",                      lat:29.96870, lng:31.52480},   // ≈ interp
+    {cp:10, en:"Gate 4",                       ar:"بوابة 4",                       lat:29.96860, lng:31.52866},   // real OSM gate
+    {cp:11, en:"Building 146",                 ar:"مبنى 146",                      lat:29.96940, lng:31.53250},   // ≈ interp
+    {cp:12, en:"Building 81",                  ar:"مبنى 81",                       lat:29.97020, lng:31.53520},   // ≈ interp
+    {cp:13, en:"Zone 1 Mosque (Al-Wahid Al-Ahad)", ar:"مسجد المنطقة الأولى (الواحد الأحد)", lat:29.97109, lng:31.53687},   // real OSM mosque (exact name match)
+    {cp:14, en:"Hub · Building 237",           ar:"المحطة · مبنى 237",             lat:29.97050, lng:31.52720}    // ≈ interp (central; ~1.1km from Gate 1)
   ];
   // distance (m) from each point to the NEXT around the loop — operator-supplied road distances (point i → i+1).
   // [11]=P12→P13 and [12],[13] (hub edges) are estimates: hub uses straight-line direct, P13→P1 closes via geometry.
@@ -929,7 +940,7 @@
   function saveCfg(){ lsSet(LS_CFG,JSON.stringify(cfg)); }
   var cfg=loadCfg();
   // one-time migration to the 14-point Andalous Phase-2 layout (replaces any saved 12-point route; keeps fares/phone)
-  if(cfg.routeVer!==2){ cfg.route=[]; cfg.hub=14; cfg.routeVer=2; saveCfg(); }
+  if(cfg.routeVer!==3){ cfg.route=[]; cfg.hub=14; cfg.routeVer=3; saveCfg(); }   // v3: real OSM-anchored coordinates
   N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
   var lang=lsGet(LS_LANG)||"ar";
 
@@ -962,6 +973,7 @@
       msgConfirm:"👉 Open to accept the ride:", pinPrompt:"Enter admin PIN", pinWrong:"Wrong PIN",
       launchTitle:"Launching Soon", launchSub:"GoGolfy is getting ready to roll out in Dar Masr Al Andalous. We'll be live very soon — stay tuned!", launchTag:"Your ride inside.", launchWa:"💬 Contact us on WhatsApp",
       homeTitle:"Your ride is one tap away 🛺", homeSub:"Skip the walk — hop on a GoGolfy cart and glide across the compound in minutes.", homeBook:"Book a ride now",
+      tapBook:"👇 Tap here to book your ride", destPick:"👇 Choose where you're going", destDone:"✓ Destination set — scroll down to confirm",
       homeStepsT:"How it works", chip1:"⚡ Arrives in minutes", chip2:"💳 InstaPay or Cash", chip3:"📍 12 pick-up points", chip4:"🌿 Quiet & green",
       hs1t:"1 · Choose your pick-up point", hs1s:"Scan the QR at your spot, or pick it from the list.",
       hs2t:"2 · Destination & payment", hs2s:"Pick where to go, the ride type, and InstaPay or Cash.",
@@ -1013,6 +1025,7 @@
       msgConfirm:"👉 افتح لقبول الرحلة:", pinPrompt:"أدخل رمز المشرف", pinWrong:"رمز غير صحيح",
       launchTitle:"قريبًا الإطلاق", launchSub:"GoGolfy على وشك الانطلاق في دار مصر الأندلس. سنكون متاحين قريبًا جدًا — ترقّبوا!", launchTag:"رحلتك في الداخل.", launchWa:"💬 تواصل معنا على واتساب",
       homeTitle:"رحلتك على بُعد ضغطة 🛺", homeSub:"وفّر عناء المشي — اركب عربة GoGolfy وتنقّل داخل الكمبوند في دقائق.", homeBook:"احجز رحلتك الآن",
+      tapBook:"👇 اضغط هنا لحجز رحلتك", destPick:"👇 اختر وجهتك", destDone:"✓ تم تحديد وجهتك — مرّر للأسفل للتأكيد",
       homeStepsT:"كيف تعمل", chip1:"⚡ تصل في دقائق", chip2:"💳 إنستاباي أو نقدًا", chip3:"📍 12 نقطة انطلاق", chip4:"🌿 هادئة وصديقة للبيئة",
       hs1t:"١ · اختر نقطة انطلاقك", hs1s:"امسح رمز QR في مكانك، أو اخترها من القائمة.",
       hs2t:"٢ · الوجهة والدفع", hs2s:"حدد وجهتك ونوع الرحلة وطريقة الدفع (إنستاباي أو نقدًا).",
@@ -1061,7 +1074,7 @@
     if(posA===h || posB===h) return Math.round(havM(posA,posB)*1.25);                        // hub ↔ point: direct
     var seq=seqList(), n=seq.length, ia=seq.indexOf(posA), ib=seq.indexOf(posB);
     if(ia<0||ib<0||n<2) return Math.round(havM(posA,posB)*1.25);
-    function sd(k){ return segDist(seq[k], seq[(k+1)%n]); }
+    function sd(k){ return segOf(seq[k]) || segDist(seq[k], seq[(k+1)%n]); }   // road distance for every loop edge incl. the closing edge (falls back to straight-line only if unset)
     var total=0; for(var j=0;j<n;j++) total+=sd(j);
     var fwd=0,k=ia; while(k!==ib){ fwd+=sd(k); k=(k+1)%n; }
     return Math.round(Math.min(fwd, total-fwd));                                             // shorter direction
@@ -1156,7 +1169,10 @@
     })(i);}
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
-  function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
+  function renderDest(){
+    var dh=$("destHint"); if(dh){ if(state.destination){ dh.textContent=t("destDone"); dh.classList.add("done"); } else { dh.textContent=t("destPick"); dh.classList.remove("done"); } }
+    buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; });
+  }
   var bMapSig=null;   // (booking map is now offline SVG; the old Leaflet vars were removed)
   var GG_GREEN=(getComputedStyle(document.documentElement).getPropertyValue('--green')||'').trim()||'#1f9a48';
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
@@ -1170,7 +1186,7 @@
     if(pi===h || di===h) return [ptCoord(pi), ptCoord(di)];                 // hub ↔ point: direct line
     var seq=seqList(), n=seq.length, ia=seq.indexOf(pi), ib=seq.indexOf(di);
     if(ia<0||ib<0||n<2) return [ptCoord(pi), ptCoord(di)];
-    function sd(k){ return segDist(seq[k], seq[(k+1)%n]); }
+    function sd(k){ return segOf(seq[k]) || segDist(seq[k], seq[(k+1)%n]); }   // road distance for every loop edge incl. the closing edge (falls back to straight-line only if unset)
     function viaFwd(k){ var p=seq[k], q=seq[(k+1)%n]; return (q===p+1)?viaOf(p):[]; }
     var total=0; for(var j=0;j<n;j++) total+=sd(j);
     var fwd=0,k=ia; while(k!==ib){ fwd+=sd(k); k=(k+1)%n; }
@@ -1462,6 +1478,7 @@
     if(!$("homeTitle")) return;
     $("homeTitle").textContent=(cfg.welcomeTitle&&cfg.welcomeTitle.trim())||t("homeTitle"); $("homeSub").textContent=(cfg.welcomeSub&&cfg.welcomeSub.trim())||t("homeSub"); $("homeBookTxt").textContent=t("homeBook");
     $("heroBadge").textContent=comp();
+    if($("ctaHint")) $("ctaHint").textContent=t("tapBook");
     ["hs1t","hs1s","hs2t","hs2s","hs3t","hs3s","homeFaresT","homeStepsT","chip1","chip2","chip3","chip4"].forEach(function(k){ $(k).textContent=t(k); });
     if($("chip3")){ var h=hubIdx(), nPk=0; for(var ci=1;ci<=N;ci++){ if(ci!==h) nPk++; } $("chip3").textContent=(lang==="ar")?("📍 "+nPk+" نقطة انطلاق"):("📍 "+nPk+" pick-up points"); }
     var u=cur();
