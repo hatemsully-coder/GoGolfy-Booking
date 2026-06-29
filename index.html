@@ -207,7 +207,9 @@
   .gg-pin.ds{background:var(--accent);border-color:#e0a106;color:#15241c;}
   .leaflet-container{font-family:inherit;}
   /* booking guide map */
-  #bookMap{width:100%;height:240px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
+  #bookMap{width:100%;height:240px;border-radius:12px;overflow:hidden;background:#eef4ee;z-index:0;}
+  #bookMap svg{display:block;}
+  .map-msg{display:flex;align-items:center;justify-content:center;height:100%;min-height:130px;padding:16px;text-align:center;color:var(--muted);font-size:.85rem;font-weight:600;line-height:1.5;}
   #driverMap{width:100%;height:230px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
   .gg-pin.gg-pin-lg{width:36px;height:36px;font-size:16px;border-width:3px;}
   .gg-pin.gg-pin-sm{width:23px;height:23px;font-size:11px;border-width:2px;background:rgba(255,255,255,.92);color:var(--green-dark);cursor:pointer;}
@@ -1111,62 +1113,67 @@
     else { k=ia; while(k!==ib){ var pk=(k-1+n)%n; viaFwd(pk).slice().reverse().forEach(function(v){coords.push([v[0],v[1]]);}); k=pk; coords.push(ptCoord(seq[k])); } }  // counter-clockwise
     return coords;
   }
+  // Project real lat/lng into an SVG box with uniform scale (keeps the compound's true shape & proportions).
+  function bookProj(){
+    var W=620,H=250,PAD=40, lats=[],lngs=[];
+    for(var i=1;i<=N;i++){ var c=ptCoord(i); lats.push(c[0]); lngs.push(c[1]); }
+    var minLa=Math.min.apply(null,lats),maxLa=Math.max.apply(null,lats),minLn=Math.min.apply(null,lngs),maxLn=Math.max.apply(null,lngs);
+    var cLa=(minLa+maxLa)/2, k=Math.cos(cLa*Math.PI/180);
+    function xm(ln){ return (ln-minLn)*111320*k; }
+    function ym(la){ return (la-minLa)*110540; }
+    var Wm=xm(maxLn)||1, Hm=ym(maxLa)||1, sc=Math.min((W-2*PAD)/Wm,(H-2*PAD)/Hm);
+    var offX=(W-Wm*sc)/2, offY=(H-Hm*sc)/2;
+    return { W:W, H:H, proj:function(la,ln){ return [offX+xm(ln)*sc, H-(offY+ym(la)*sc)]; } };
+  }
+  // Offline guide map: a self-drawn SVG schematic (no satellite tiles, no Leaflet, no internet).
+  // Points are placed by real coordinates so the layout is accurate; the route follows the real path.
   function updateMap(){
     var card=$("mapCard"); if(!card) return;
     if(state.home || $("screen-book").classList.contains("hidden")){ card.classList.add("hidden"); bMapSig=null; return; }
     card.classList.remove("hidden");
-    // Only rebuild when something map-relevant changed (pickup/destination/points/language) — keeps
-    // residents/payment/schedule changes from thrashing the map, so the dashboard stays smooth.
+    var box=$("bookMap"); if(!box) return;
     var sig=(state.pickup||"-")+"|"+(state.destination||"-")+"|"+N+"|"+lang;
-    if(bMap && sig===bMapSig){ setTimeout(function(){ try{ bMap.invalidateSize(); }catch(e){} },60); return; }
+    if(sig===bMapSig && box.querySelector("svg")) return;   // nothing map-relevant changed
     bMapSig=sig;
-    loadLeaflet(function(){
-      if(!window.L) return;
-      if(!bMap){
-        bMap=L.map('bookMap',{zoomControl:false,attributionControl:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,dragging:false,touchZoom:false,keyboard:false});
-        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18}).addTo(bMap);
-      }
-      bAllMk.forEach(function(m){ bMap.removeLayer(m); }); bAllMk=[];
-      bMarkers.forEach(function(m){ try{m.unbindTooltip();}catch(e){} bMap.removeLayer(m); }); bMarkers=[];
-      if(bLine){ bMap.removeLayer(bLine); bLine=null; }
-      if(bLoop){ bMap.removeLayer(bLoop); bLoop=null; }
-      try{ var tp=bMap.getPane('tooltipPane'); if(tp) tp.innerHTML=''; }catch(e){}
-      // no full-loop connecting line (those inter-point chords looked like cross-cutting "side lines");
-      // we only draw the actual shortest route below.
-      var all=[]; for(var i=1;i<=N;i++) all.push(ptCoord(i));
-      // all other points — small, tappable: first sets pickup (if none), then destination
-      for(var j=1;j<=N;j++){(function(n){
-        if(n===state.pickup || n===state.destination) return;
-        var sm=L.marker(ptCoord(n),{icon:bSmallIcon(n)}).addTo(bMap);
-        sm.bindTooltip(cpName(n),{direction:'top'});
-        sm.on('click',function(){
-          if(!state.pickup){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; renderAll(); }
-          else if(n!==state.pickup){ state.destination=n; renderDest(); updateMap(); updateFare(); }
-        });
-        bAllMk.push(sm);
-      })(j);}
-      var pc=state.pickup?ptCoord(state.pickup):null, dc=state.destination?ptCoord(state.destination):null;
-      // route follows the pick-point SEQUENCE between non-hub points; the hub goes direct (see routeArc).
-      if(pc&&dc){
-        var gc=GG_GREEN;
-        var seg=routeArc(state.pickup,state.destination);
-        var casing=L.polyline(seg,{color:'#ffffff',weight:8,opacity:.9,lineCap:'round',lineJoin:'round'});
-        var pathL=L.polyline(seg,{color:gc,weight:5,opacity:1,lineCap:'round',lineJoin:'round'});
-        bLine=L.layerGroup([casing,pathL]).addTo(bMap);
-      }
-      if(pc){ var pm=L.marker(pc,{icon:bPinIcon(state.pickup,'pk'),zIndexOffset:1000}).addTo(bMap);
-        pm.bindTooltip("📍 "+cpName(state.pickup),{permanent:true,direction:'top',offset:[0,-19],className:'gg-tip gg-tip-pk'}); bMarkers.push(pm); }
-      if(dc){ var dm=L.marker(dc,{icon:bPinIcon(state.destination,'ds'),zIndexOffset:1000}).addTo(bMap);
-        dm.bindTooltip("🎯 "+cpName(state.destination),{permanent:true,direction:'bottom',offset:[0,19],className:'gg-tip gg-tip-ds'}); bMarkers.push(dm); }
-      // fixed, consistent framing — always show the whole compound (single deferred pass after the
-      // container settles, to avoid a double reframe)
-      setTimeout(function(){ try{ bMap.invalidateSize(); bMap.fitBounds(L.latLngBounds(all),{padding:[34,34]}); }catch(e){} },160);
-      var cap=$("bookMapCap"); if(cap){ var h="";
-        if(pc) h+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <bdi><b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</bdi></span>';
-        if(dc) h+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <bdi><b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</bdi></span>';
-        if(!dc) h+='<span class="lg" style="color:var(--muted)">'+esc(t("mapTapHint"))+'</span>';
-        cap.innerHTML=h; }
-    });
+    var P=bookProj(), pj=P.proj, W=P.W, H=P.H, h=hubIdx(), seq=seqList();
+    function px(i){ var c=ptCoord(i); return pj(c[0],c[1]); }
+    function f1(x){ return x.toFixed(1); }
+    var s=['<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" font-family="inherit">'];
+    s.push('<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#eef4ee"/>');
+    for(var gx=40;gx<W;gx+=40) s.push('<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="#e2ece4" stroke-width="1"/>');
+    for(var gy=40;gy<H;gy+=40) s.push('<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="#e2ece4" stroke-width="1"/>');
+    // the loop road (closed, hub excluded) — faint guide
+    var lpts=seq.map(px); if(lpts.length>1){ s.push('<path d="M'+lpts.map(function(p){return f1(p[0])+' '+f1(p[1]);}).join(' L')+' Z" fill="none" stroke="#c4e2cf" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>'); }
+    // the actual route (pickup → destination) — white casing + green line
+    if(state.pickup&&state.destination){
+      var arc=routeArc(state.pickup,state.destination).map(function(c){ return pj(c[0],c[1]); });
+      var rp='M'+arc.map(function(p){return f1(p[0])+' '+f1(p[1]);}).join(' L');
+      s.push('<path d="'+rp+'" fill="none" stroke="#ffffff" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>');
+      s.push('<path d="'+rp+'" fill="none" stroke="'+GG_GREEN+'" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>');
+    }
+    // points (tappable)
+    for(var i=1;i<=N;i++){
+      var p=px(i), isPk=(i===state.pickup), isDs=(i===state.destination), isHub=(i===h), big=(isPk||isDs), r=big?15:11;
+      var fill=isPk?GG_GREEN:(isDs?'#f4b400':(isHub?'#f4b400':'#ffffff'));
+      var stroke=isPk?'#0e6e37':(isDs||isHub?'#e0a106':GG_GREEN);
+      var tcol=isPk?'#ffffff':(isDs||isHub?'#15241c':'#0e6e37');
+      if(isPk) s.push('<text x="'+f1(p[0])+'" y="'+f1(p[1]-r-6)+'" text-anchor="middle" font-size="15">📍</text>');
+      if(isDs) s.push('<text x="'+f1(p[0])+'" y="'+f1(p[1]-r-6)+'" text-anchor="middle" font-size="15">🎯</text>');
+      s.push('<g data-pt="'+i+'" style="cursor:pointer"><circle cx="'+f1(p[0])+'" cy="'+f1(p[1])+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="2.5"/>'
+        +'<text x="'+f1(p[0])+'" y="'+f1(p[1]+(big?5:4))+'" text-anchor="middle" font-size="'+(big?14:11)+'" font-weight="800" fill="'+tcol+'">'+i+'</text></g>');
+    }
+    s.push('</svg>');
+    box.innerHTML=s.join('');
+    box.querySelectorAll('[data-pt]').forEach(function(g){ g.addEventListener('click',function(){
+      var n=parseInt(g.getAttribute('data-pt'),10);
+      if(!state.pickup){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; renderAll(); }
+      else if(n!==state.pickup){ state.destination=n; renderDest(); updateMap(); updateFare(); }
+    }); });
+    var cap=$("bookMapCap"); if(cap){ var hh="";
+      if(state.pickup) hh+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <bdi><b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</bdi></span>';
+      if(state.destination) hh+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <bdi><b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</bdi></span>';
+      if(!state.destination) hh+='<span class="lg" style="color:var(--muted)">'+esc(t("mapTapHint"))+'</span>';
+      cap.innerHTML=hh; }
   }
   function rtDesc(ty){
     var u=cur(), per=lang==="ar"?"للفرد":"each", pp=lang==="ar"?"للفرد":"per person";
@@ -1490,12 +1497,32 @@
       +"Open the link, pick your destination on the map & confirm — a driver will be notified.";
   }
   // ---- admin route map (Leaflet, lazy-loaded) ----
-  var leafletLoading=false, rMap=null, rMarkers=[], rViaMk=[], rAddMk=[], rLine=null, routeEdit=[];
+  var leafletLoading=false, leafletCbs=[], rMap=null, rMarkers=[], rViaMk=[], rAddMk=[], rLine=null, routeEdit=[];
+  function showMapMsg(){
+    var msg=(lang==="ar")?"تعذّر تحميل الخريطة — تأكد من الإنترنت ثم حدّث الصفحة.":"Couldn't load the map — check your internet, then refresh.";
+    ["bookMap","driverMap","driverFleetMap","routeMap","reportMap"].forEach(function(id){ var el=$(id); if(el && !el.querySelector(".leaflet-tile") && !el.querySelector(".leaflet-container")) el.innerHTML='<div class="map-msg">🗺️ '+esc(msg)+'</div>'; });
+  }
+  // Robust loader: queues callbacks, tries unpkg → jsdelivr, and shows a message (never silently blank) if both fail.
   function loadLeaflet(cb){
     if(window.L){ cb(); return; }
-    if(!document.getElementById("leafletCss")){ var css=document.createElement("link"); css.id="leafletCss"; css.rel="stylesheet"; css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(css); }
-    if(leafletLoading){ var t=setInterval(function(){ if(window.L){ clearInterval(t); cb(); } },120); return; }
-    leafletLoading=true; var s=document.createElement("script"); s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; s.onload=function(){ cb(); }; document.head.appendChild(s);
+    if(cb) leafletCbs.push(cb);
+    if(!document.getElementById("leafletCss")){
+      var css=document.createElement("link"); css.id="leafletCss"; css.rel="stylesheet"; css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      css.onerror=function(){ css.href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"; };
+      document.head.appendChild(css);
+    }
+    if(leafletLoading) return;
+    leafletLoading=true;
+    var srcs=["https://unpkg.com/leaflet@1.9.4/dist/leaflet.js","https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"], i=0;
+    function flush(){ var cbs=leafletCbs.slice(); leafletCbs=[]; cbs.forEach(function(f){ try{f();}catch(e){} }); }
+    function tryNext(){
+      if(i>=srcs.length){ leafletLoading=false; showMapMsg(); return; }
+      var s=document.createElement("script"); s.async=true; s.src=srcs[i++];
+      s.onload=function(){ if(window.L){ leafletLoading=false; flush(); } else { tryNext(); } };
+      s.onerror=function(){ tryNext(); };
+      document.head.appendChild(s);
+    }
+    tryNext();
   }
   function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
   function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
