@@ -209,6 +209,9 @@
   /* booking guide map */
   #bookMap{width:100%;height:240px;border-radius:12px;overflow:hidden;background:#eef4ee;z-index:0;}
   #bookMap svg{display:block;}
+  .live-clock{font-size:.72rem;font-weight:600;opacity:.9;}
+  header .live-clock{color:#fff;margin-top:4px;letter-spacing:.3px;opacity:.92;}
+  .mh-clock{font-size:.68rem;font-weight:600;opacity:.85;}
   .map-msg{display:flex;align-items:center;justify-content:center;height:100%;min-height:130px;padding:16px;text-align:center;color:var(--muted);font-size:.85rem;font-weight:600;line-height:1.5;}
   #driverMap{width:100%;height:230px;border-radius:12px;overflow:hidden;background:#e9eef0;z-index:0;}
   .gg-pin.gg-pin-lg{width:36px;height:36px;font-size:16px;border-width:3px;}
@@ -338,6 +341,32 @@
   .report-mapcard{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);}
   .report-mapcard .rm-cap{position:absolute;inset-inline-start:10px;bottom:10px;background:rgba(15,36,28,.62);color:#fff;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:8px;z-index:500;}
   .gg-pin.gg-pin-sm.hub{background:var(--accent);color:#15241c;border-color:#e0a106;}
+  /* editable pick-points list */
+  .rl-head{display:flex;align-items:center;gap:8px;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:0 4px 4px;}
+  .rl-head span:nth-child(1){width:22px;text-align:center;} .rl-head span:nth-child(2){flex:1;} .rl-head span:nth-child(3){width:74px;text-align:center;} .rl-head span:nth-child(4){width:34px;}
+  .route-list{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;}
+  .rl-row{display:flex;align-items:center;gap:8px;}
+  .rl-row .rl-n{width:22px;height:22px;flex:0 0 auto;border-radius:50%;background:var(--green);color:#fff;font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .rl-row .rl-name{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:.9rem;font-family:inherit;background:#fff;color:var(--ink);}
+  .rl-row .rl-seg{width:60px;padding:8px 6px;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-family:inherit;text-align:center;background:#fff;color:var(--ink);}
+  .rl-row .rl-m{font-size:.7rem;color:var(--muted);font-weight:700;}
+  .rl-row .rl-del{width:34px;height:34px;flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:9px;cursor:pointer;font-size:.9rem;}
+  .rl-row .rl-del:active{background:#fde8e6;}
+  /* daily expenses */
+  .exp-panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+  .exp-form{display:grid;grid-template-columns:1fr 90px;gap:8px;margin-top:8px;}
+  .exp-form #expNote{grid-column:1 / -1;}
+  .exp-form input{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font-size:.9rem;font-family:inherit;background:#fff;color:var(--ink);}
+  .exp-form .save-btn{grid-column:1 / -1;}
+  .exp-tot{display:flex;justify-content:space-between;gap:10px;font-size:.82rem;font-weight:700;color:var(--green-dark);background:var(--green-light);border-radius:9px;padding:8px 11px;margin:10px 0 8px;}
+  .exp-list{margin-top:4px;}
+  .exp-row{display:flex;align-items:center;gap:8px;padding:6px 2px;border-bottom:1px solid var(--line);font-size:.82rem;}
+  .exp-row .exp-d{width:84px;color:var(--muted);font-weight:700;flex:0 0 auto;}
+  .exp-row .exp-a{width:78px;font-weight:800;color:var(--green-dark);flex:0 0 auto;}
+  .exp-row .exp-note{flex:1;min-width:0;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .exp-row .exp-del{border:none;background:none;cursor:pointer;font-size:.85rem;opacity:.7;}
+  .exp-sum{font-size:.82rem;font-weight:700;color:var(--ink);background:#fff7e6;border:1px solid #f1dca6;border-radius:10px;padding:8px 11px;margin:4px 0 12px;}
+  .exp-sum .exp-est{font-weight:600;color:var(--muted);}
   .chart-title{font-size:.82rem;font-weight:800;color:var(--ink);margin:16px 0 6px;}
   .chart{display:flex;align-items:flex-end;gap:6px;height:130px;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow-x:auto;}
   .bar{flex:0 0 auto;width:30px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;}
@@ -406,6 +435,7 @@
     </div>
     <div class="compound" id="compoundName">Dar Masr Al Andalous</div>
     <div class="tagline" id="tagline"></div>
+    <div class="live-clock" data-clock></div>
   </header>
 
   <main>
@@ -579,6 +609,7 @@
         <div class="dh-text">
           <div class="dh-t" id="driverTitle">Driver Dashboard</div>
           <div class="dh-s" id="driverSub">Live ride requests</div>
+          <div class="dh-s live-clock" data-clock></div>
         </div>
         <div class="livedot off" id="liveDot"><span class="d"></span><span id="liveTxt">…</span></div>
       </div>
@@ -633,7 +664,7 @@
           <circle cx="46" cy="74" r="13" fill="#fff"/><circle cx="46" cy="74" r="5.5" fill="#1f9a48"/>
           <circle cx="106" cy="74" r="13" fill="#fff"/><circle cx="106" cy="74" r="5.5" fill="#1f9a48"/>
         </svg>
-        <h3>GoGolfy Admin</h3>
+        <div><h3>GoGolfy Admin</h3><div class="mh-clock live-clock" data-clock></div></div>
       </div>
       <button class="modal-close" id="adminClose">✕</button>
     </div>
@@ -681,7 +712,8 @@
           <div class="desc"><b>Tap a pin</b> to rename, reorder (⬆⬇) or delete a pick-up point · <b>drag a pin</b> onto its exact spot. Tap a <b>＋</b> to add a road corner and drag it onto the road. Routes between pick-up points <b>follow the sequence</b> through the in-between points (e.g. 1→2→…→11), in either direction; the <b>hub</b> point goes direct to/from any point. Distances recalculate automatically.</div>
           <button type="button" class="save-btn" id="addPoint" style="margin:0 0 10px;background:var(--green-dark);">➕ Add pick-up point</button>
           <div id="routeMap"></div>
-          <textarea id="cfgLabels" rows="6" readonly style="width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:.82rem;font-family:monospace;background:var(--green-light);color:var(--ink);"></textarea>
+          <div class="rl-head"><span>#</span><span>Name</span><span>→ next (m)</span><span></span></div>
+          <div id="routeList" class="route-list"></div>
           <div class="field" style="margin-top:10px;"><label>🏢 Hub / depot point number (goes direct to any point — not via the sequence)</label><input type="number" id="cfgHub" min="1" max="99" /></div>
         </div>
 
@@ -746,7 +778,18 @@
       </div>
 
       <div id="tab-reports" class="hidden">
-        <div class="mini-note">Live revenue, residents and profit from your bookings (via the Stats API). Profit = revenue − (cost per ride × rides).</div>
+        <div class="mini-note">Live revenue, residents and profit from your bookings (via the Stats API). Profit = revenue − (cost per ride × rides) − daily expenses.</div>
+        <div class="exp-panel">
+          <div class="sec-title">💸 Daily expenses</div>
+          <div class="desc">Log what you spend each day (fuel, salary, charging…). Profit & break-even use these for the matching days; days without an entry fall back to the Daily operating cost.</div>
+          <div class="exp-form">
+            <input type="date" id="expDate" />
+            <input type="number" id="expAmt" min="0" step="1" placeholder="Amount" />
+            <input type="text" id="expNote" placeholder="Note (fuel, salary…)" />
+            <button id="expAdd" class="save-btn" style="margin:0;">➕ Add</button>
+          </div>
+          <div id="expList" class="exp-list"></div>
+        </div>
         <div class="btn-row no-print"><button id="refreshReports">🔄 Refresh</button></div>
         <div id="reportsBody"><div class="dash-empty" id="reportsMsg">Loading…</div></div>
       </div>
@@ -806,7 +849,7 @@
   "use strict";
   // ===== LAUNCH SWITCH: set to false to GO LIVE (then re-upload). true = "Launching Soon" page for the public =====
   var LAUNCHING_SOON = false;
-  var LS_CFG="gogolfy_cfg_v3", LS_LOG="gogolfy_log_v3", LS_LANG="gogolfy_lang_v3";
+  var LS_CFG="gogolfy_cfg_v3", LS_LOG="gogolfy_log_v3", LS_LANG="gogolfy_lang_v3", LS_EXP="gogolfy_exp_v1";
 
   // ---- storage with safe fallback (fixes save on file:// / private mode) ----
   var mem={};
@@ -914,6 +957,7 @@
       live:"Live", offline:"Offline", b_accept:"Accept", b_arrive:"Arriving", b_done:"✅ Done (paid)", b_paid:"💳 Paid",
       notePrompt:"Trip done — money received. Add a note (optional):",
       mapTapHint:"Tap a point on the map to set your destination",
+      mapTapChange:"Tap any point to change · 🏠 = hub",
       locShare:"Find nearest & share my location", locSharing:"Location on — nearest first · tap to stop",
       locDenied:"Location permission denied. Please allow location to find the nearest rider and share it.", locNoGeo:"Location is not available on this device.",
       dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you.",
@@ -964,6 +1008,7 @@
       live:"مباشر", offline:"غير متصل", b_accept:"قبول", b_arrive:"يصل", b_done:"✅ تم (مدفوع)", b_paid:"💳 مدفوع",
       notePrompt:"تمت الرحلة — تم استلام المبلغ. أضف ملاحظة (اختياري):",
       mapTapHint:"اضغط نقطة على الخريطة لتحديد وجهتك",
+      mapTapChange:"اضغط أي نقطة للتغيير · 🏠 = المركز",
       locShare:"الأقرب ومشاركة موقعي", locSharing:"الموقع مُفعّل — الأقرب أولاً · اضغط للإيقاف",
       locDenied:"تم رفض إذن الموقع. فضلاً اسمح بالموقع لإيجاد الأقرب ومشاركته.", locNoGeo:"الموقع غير متاح على هذا الجهاز.",
       dlTitle:"🚗 موقع السائق (مباشر)", dlNote:"يتم التحديث مباشرة أثناء تحرك السائق نحوك.",
@@ -1062,6 +1107,7 @@
     if($("arfSave")) $("arfSave").textContent=t("arfSave");
     if($("arfCancel")) $("arfCancel").textContent=t("arfCancel");
     setShareLocText();
+    if(typeof tickClock==="function") tickClock();
   }
   function renderPickup(){
     if(state.home){
@@ -1091,7 +1137,7 @@
   }
   function renderPickupGrid(){ buildGrid($("pickupGrid"),function(){return state.pickup;},function(n){ state.pickup=n; state.home=false; if(state.destination===n) state.destination=null; $("pickupPicker").classList.add("hidden"); renderAll(); }); }
   function renderDest(){ buildGrid($("destGrid"),function(){return state.destination;},function(n){ if(n===state.pickup) return; state.destination=n; renderDest(); updateMap(); updateFare(); },function(n){ return n===state.pickup; }); }
-  var bMap=null, bMarkers=[], bLine=null, bAllMk=[], bLoop=null, bMapSig=null;
+  var bMapSig=null;   // (booking map is now offline SVG; the old Leaflet vars were removed)
   var GG_GREEN=(getComputedStyle(document.documentElement).getPropertyValue('--green')||'').trim()||'#1f9a48';
   function bPinIcon(txt,kind){ return L.divIcon({className:'gg-pin gg-pin-lg '+kind, html:String(txt), iconSize:[36,36], iconAnchor:[18,18]}); }
   function bSmallIcon(txt){ return L.divIcon({className:'gg-pin gg-pin-sm', html:String(txt), iconSize:[22,22], iconAnchor:[11,11]}); }
@@ -1153,12 +1199,13 @@
     }
     // points (tappable)
     for(var i=1;i<=N;i++){
-      var p=px(i), isPk=(i===state.pickup), isDs=(i===state.destination), isHub=(i===h), big=(isPk||isDs), r=big?15:11;
-      var fill=isPk?GG_GREEN:(isDs?'#f4b400':(isHub?'#f4b400':'#ffffff'));
-      var stroke=isPk?'#0e6e37':(isDs||isHub?'#e0a106':GG_GREEN);
-      var tcol=isPk?'#ffffff':(isDs||isHub?'#15241c':'#0e6e37');
+      var p=px(i), isPk=(i===state.pickup), isDs=(i===state.destination), isHub=(i===h), unHub=isHub&&!isPk&&!isDs, big=(isPk||isDs), r=big?15:11;
+      var fill=isPk?GG_GREEN:(isDs?'#f4b400':(unHub?'#fff3d6':'#ffffff'));
+      var stroke=isPk?'#0e6e37':(isDs?'#e0a106':(unHub?'#b07d12':GG_GREEN));
+      var tcol=isPk?'#ffffff':(isDs?'#15241c':(unHub?'#8a5a00':'#0e6e37'));
       if(isPk) s.push('<text x="'+f1(p[0])+'" y="'+f1(p[1]-r-6)+'" text-anchor="middle" font-size="15">📍</text>');
-      if(isDs) s.push('<text x="'+f1(p[0])+'" y="'+f1(p[1]-r-6)+'" text-anchor="middle" font-size="15">🎯</text>');
+      else if(isDs) s.push('<text x="'+f1(p[0])+'" y="'+f1(p[1]-r-6)+'" text-anchor="middle" font-size="15">🎯</text>');
+      else if(unHub) s.push('<text x="'+f1(p[0])+'" y="'+f1(p[1]-r-5)+'" text-anchor="middle" font-size="13">🏠</text>');
       s.push('<g data-pt="'+i+'" style="cursor:pointer"><circle cx="'+f1(p[0])+'" cy="'+f1(p[1])+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="2.5"/>'
         +'<text x="'+f1(p[0])+'" y="'+f1(p[1]+(big?5:4))+'" text-anchor="middle" font-size="'+(big?14:11)+'" font-weight="800" fill="'+tcol+'">'+i+'</text></g>');
     }
@@ -1172,7 +1219,7 @@
     var cap=$("bookMapCap"); if(cap){ var hh="";
       if(state.pickup) hh+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <bdi><b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</bdi></span>';
       if(state.destination) hh+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <bdi><b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</bdi></span>';
-      if(!state.destination) hh+='<span class="lg" style="color:var(--muted)">'+esc(t("mapTapHint"))+'</span>';
+      hh+='<span class="lg" style="color:var(--muted)">'+esc(state.destination?t("mapTapChange"):t("mapTapHint"))+'</span>';
       cap.innerHTML=hh; }
   }
   function rtDesc(ty){
@@ -1408,7 +1455,7 @@
     ["settings","reports","qr","log","host"].forEach(function(x){ $("tab-"+x).classList.toggle("hidden",x!==name); });
     document.querySelectorAll(".tab").forEach(function(el){ el.classList.toggle("active",el.getAttribute("data-tab")===name); });
     if(name==="log") renderLog();
-    if(name==="reports") renderReports();
+    if(name==="reports"){ renderExpenses(); renderReports(); }
     if(name==="settings") setTimeout(openRouteMap,60);
     if(name==="qr"&&!$("cfgBaseUrl").value) $("cfgBaseUrl").value=cfg.baseUrl||defaultBaseUrl();
     if(name==="qr") $("autoReply").value=buildAutoReply();
@@ -1424,6 +1471,31 @@
     }).join("")+'</div>';
   }
   function round1(x){ return Math.round(x*10)/10; }
+  // ---- daily expenses (local) ----
+  function getExp(){ try{ return JSON.parse(lsGet(LS_EXP))||[]; }catch(e){ return []; } }
+  function saveExp(a){ lsSet(LS_EXP, JSON.stringify(a)); }
+  function todayStr(){ var d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+  function addExp(){
+    var date=($("expDate").value||todayStr()), amt=Number($("expAmt").value)||0, note=($("expNote").value||"").trim();
+    if(amt<=0){ alert(rAr()?"أدخل مبلغًا صحيحًا.":"Enter a valid amount."); return; }
+    var a=getExp(); a.push({ id:newId(), date:date, amount:Math.round(amt*100)/100, note:note }); saveExp(a);
+    $("expAmt").value=""; $("expNote").value="";
+    renderExpenses(); renderReports();
+  }
+  function delExp(id){ saveExp(getExp().filter(function(e){ return e.id!==id; })); renderExpenses(); renderReports(); }
+  function renderExpenses(){
+    var box=$("expList"); if(!box) return;
+    if($("expDate") && !$("expDate").value) $("expDate").value=todayStr();
+    var a=getExp().slice().sort(function(x,y){ return (y.date||"").localeCompare(x.date||""); });
+    var u=curUnit(), today=todayStr(), todayTot=0, grand=0;
+    a.forEach(function(e){ var v=Number(e.amount)||0; grand+=v; if(e.date===today) todayTot+=v; });
+    var rows=a.slice(0,40).map(function(e){
+      return '<div class="exp-row"><span class="exp-d">'+esc(e.date)+'</span><span class="exp-a">'+iso((Number(e.amount)||0)+' '+u)+'</span><span class="exp-note">'+esc(e.note||"")+'</span><button class="exp-del" data-id="'+esc(e.id)+'">🗑</button></div>';
+    }).join("");
+    box.innerHTML='<div class="exp-tot"><span>'+(rAr()?"اليوم":"Today")+': <b>'+iso(round1(todayTot)+' '+u)+'</b></span><span>'+(rAr()?"الإجمالي":"Total")+': <b>'+iso(round1(grand)+' '+u)+'</b></span></div>'
+      +(rows||'<div class="dash-empty" style="padding:10px">'+(rAr()?"لا مصاريف بعد":"No expenses yet")+'</div>');
+    box.querySelectorAll('.exp-del').forEach(function(b){ b.addEventListener('click',function(){ delExp(b.getAttribute('data-id')); }); });
+  }
   function rAr(){ return lang==="ar"; }
   function statCard(v,l,cls){ return '<div class="stat '+(cls||'')+'"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; }
   function beCard(tot, dailyCost, nDays, u){
@@ -1438,7 +1510,7 @@
     return '<div class="be-card '+(hit?"be-hit":"be-miss")+'">'
       +'<div class="be-head"><span class="be-title">⚖️ '+(rAr()?"نقطة التعادل":"Break-even")+'</span><span class="be-badge">'+status+'</span></div>'
       +'<div class="be-main"><span class="be-num">'+Math.ceil(bePerDay)+'</span><span class="be-unit">'+(rAr()?"راكب/يوم مطلوب":"riders/day needed")+'</span></div>'
-      +'<div class="be-sub">'+(rAr()?"لتغطية":"to cover")+' '+iso(dailyCost+' '+u+'/'+(rAr()?"يوم":"day"))+' · '+(rAr()?"متوسط الأجرة":"avg fare")+' '+iso(round1(avgFare)+' '+u)+'</div>'
+      +'<div class="be-sub">'+(rAr()?"لتغطية":"to cover")+' '+iso(round1(dailyCost)+' '+u+'/'+(rAr()?"يوم":"day"))+' · '+(rAr()?"متوسط الأجرة":"avg fare")+' '+iso(round1(avgFare)+' '+u)+'</div>'
       +'<div class="be-gauge"><div class="be-fill" style="width:'+barPct+'%"></div></div>'
       +'<div class="be-row"><span>'+(rAr()?"الفعلي":"Actual")+': <b>'+round1(actualPerDay)+'</b> '+(rAr()?"راكب/يوم":"riders/day")+'</span><span class="be-detail">'+detail+'</span></div>'
     +'</div>';
@@ -1465,11 +1537,17 @@
     if(!cfg.statsUrl){ box.innerHTML='<div class="mini-note warn-note">Set the Stats API URL in Settings.</div>'; return; }
     fetch(cfg.statsUrl,{cache:"no-store"}).then(function(r){ return r.json(); }).then(function(s){
       var days=(s&&s.days)||[]; var cost=Number(cfg.cost)||0, dailyCost=Number(cfg.dailyCost)||0;
-      days.forEach(function(d){ d.profit=Math.round((d.revenue-cost*d.rides-dailyCost)*100)/100; });
+      // daily expenses logged for days in this period (fall back to the flat daily cost when none)
+      var exp=getExp(), dset={}, expByDay={}, periodExp=0;
+      days.forEach(function(d){ dset[d.date]=true; });
+      exp.forEach(function(e){ if(dset[e.date]){ var v=Number(e.amount)||0; periodExp+=v; expByDay[e.date]=(expByDay[e.date]||0)+v; } });
+      var hasExp=periodExp>0;
+      days.forEach(function(d){ var dayCost=(expByDay[d.date]!=null)?expByDay[d.date]:dailyCost; d.profit=Math.round((d.revenue-cost*d.rides-dayCost)*100)/100; });
       var last=days.slice(-14);
       var tot=(s&&s.totals)||{revenue:0,residents:0,rides:0};
       var nDays=days.length;
-      var profit=Math.round((tot.revenue-cost*tot.rides-dailyCost*nDays)*100)/100;
+      var fixedTot=hasExp?periodExp:dailyCost*nDays, effDaily=hasExp?(nDays?periodExp/nDays:0):dailyCost;
+      var profit=Math.round((tot.revenue-cost*tot.rides-fixedTot)*100)/100;
       var margin=tot.revenue>0?Math.round(profit/tot.revenue*1000)/10:0;
       if(!days.length){ box.innerHTML='<div class="mini-note">'+(rAr()?"لا توجد حجوزات بعد. تظهر الإحصاءات بعد أول حجز.":"No bookings logged yet. Once residents book (and the «Bookings» sheet tab exists), charts appear here.")+'</div>'; return; }
       var u=curUnit();
@@ -1479,7 +1557,8 @@
         + statCard(tot.rides,(rAr()?"الرحلات":"Rides"),'ride')
         + statCard(tot.residents,(rAr()?"الركاب":"Residents"),'res')
         +'</div>';
-      html += beCard(tot, dailyCost, nDays, u);
+      html += '<div class="exp-sum">💸 '+(rAr()?"المصاريف هذه الفترة":"Expenses this period")+': <b>'+iso(round1(fixedTot)+' '+u)+'</b>'+(hasExp?'':' <span class="exp-est">('+(rAr()?"تقديري — سجّل مصاريف فعلية":"estimated — log real expenses")+')</span>')+'</div>';
+      html += beCard(tot, effDaily, nDays, u);
       html += '<div class="chart-title">🛰️ '+(rAr()?"الكمبوند — قمر صناعي":"Compound — satellite view")+'</div>'
         + '<div class="report-mapcard"><div id="reportMap"></div><div class="rm-cap">📍 '+esc(comp())+'</div></div>';
       html+='<div class="chart-title">💵 '+(rAr()?"الإيراد / يوم":"Revenue / day")+' ('+u+')</div>'+barChart(last,"revenue","",null);
@@ -1529,13 +1608,26 @@
   function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
   function reSegPath(idx){ var n=routeEdit.length, a=routeEdit[idx], b=routeEdit[(idx+1)%n]; var pts=[[a.lat,a.lng]]; (a.via||[]).forEach(function(p){pts.push(p);}); pts.push([b.lat,b.lng]); return pts; }
   function pathLen(pts){ var d=0; for(var k=1;k<pts.length;k++) d+=haversine(pts[k-1],pts[k]); return d; }
-  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ var hasVia=(routeEdit[i].via&&routeEdit[i].via.length); var d=pathLen(reSegPath(i))*(hasVia?1:1.25); routeEdit[i].seg=Math.round(d/5)*5; } }
+  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ if(routeEdit[i].man) continue; var hasVia=(routeEdit[i].via&&routeEdit[i].via.length); var d=pathLen(reSegPath(i))*(hasVia?1:1.25); routeEdit[i].seg=Math.round(d/5)*5; } }
+  function renderRouteList(){
+    var box=$("routeList"); if(!box) return; var rows="";
+    for(var i=0;i<routeEdit.length;i++){ var r=routeEdit[i];
+      rows+='<div class="rl-row"><span class="rl-n">'+(i+1)+'</span>'
+        +'<input class="rl-name" data-i="'+i+'" value="'+esc(r.name||"")+'" placeholder="'+(lang==="ar"?"الاسم":"Name")+'"/>'
+        +'<input class="rl-seg" data-i="'+i+'" type="number" min="0" step="5" value="'+(Math.round(r.seg)||0)+'"/><span class="rl-m">m</span>'
+        +'<button class="rl-del" data-i="'+i+'" title="'+(lang==="ar"?"حذف":"Delete")+'">🗑</button></div>';
+    }
+    box.innerHTML=rows;
+    box.querySelectorAll(".rl-name").forEach(function(inp){ inp.addEventListener("input",function(){ var i=+inp.getAttribute("data-i"); routeEdit[i].name=inp.value; if(rMarkers[i]&&rMarkers[i].setTooltipContent) rMarkers[i].setTooltipContent((i+1)+" · "+inp.value); }); });
+    box.querySelectorAll(".rl-seg").forEach(function(inp){ inp.addEventListener("input",function(){ var i=+inp.getAttribute("data-i"); routeEdit[i].seg=Number(inp.value)||0; routeEdit[i].man=true; }); });
+    box.querySelectorAll(".rl-del").forEach(function(b){ b.addEventListener("click",function(){ var i=+b.getAttribute("data-i"); if(routeEdit.length<=2){ alert(lang==="ar"?"أبقِ نقطتين على الأقل.":"Keep at least 2 pick-up points."); return; } routeEdit.splice(i,1); refreshRoute(); }); });
+  }
   function routeEditToText(){ return routeEdit.map(function(r,i){ return (i+1)+". "+r.name+" — "+r.seg+" m"; }).join("\n"); }
   function reLoopCoords(){ var c=[]; for(var i=0;i<routeEdit.length;i++){ c.push([routeEdit[i].lat,routeEdit[i].lng]); (routeEdit[i].via||[]).forEach(function(p){c.push(p);}); } if(c.length>1) c.push(c[0]); return c; }
   function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } rLine=L.polyline(reLoopCoords(),{color:'#1f9a48',weight:4,opacity:.95,lineJoin:'round'}).addTo(rMap); }
   function routeVertices(){ var V=[]; for(var i=0;i<routeEdit.length;i++){ V.push({ll:[routeEdit[i].lat,routeEdit[i].lng],kind:'pt',i:i}); (routeEdit[i].via||[]).forEach(function(p,vi){ V.push({ll:p,kind:'via',i:i,vi:vi}); }); } return V; }
   function clearRouteMarkers(){ [rMarkers,rViaMk,rAddMk].forEach(function(arr){ arr.forEach(function(m){ try{rMap.removeLayer(m);}catch(e){} }); }); rMarkers=[]; rViaMk=[]; rAddMk=[]; }
-  function refreshRoute(){ recalcSegs(); $("cfgLabels").value=routeEditToText(); drawRouteLine(); renderRouteMarkers(); }
+  function refreshRoute(){ recalcSegs(); renderRouteList(); drawRouteLine(); renderRouteMarkers(); }
   function renderRouteMarkers(){
     if(!rMap||!window.L) return; clearRouteMarkers();
     routeEdit.forEach(function(r,idx){
@@ -1584,14 +1676,14 @@
     var idx=routeEdit.length-1; if(rMarkers[idx]) openPointPopup(idx,rMarkers[idx]);
   }
   function openRouteMap(){
-    buildRouteEdit();
+    buildRouteEdit(); recalcSegs(); renderRouteList();   // editable name/distance list works even without the map/internet
     loadLeaflet(function(){
       var box=$("routeMap"); if(!box) return;
       if(rMap){ try{rMap.remove();}catch(e){} rMap=null; }
       clearRouteMarkers(); rLine=null;
       rMap=L.map(box,{scrollWheelZoom:false});
       L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18,attribution:'Tiles &copy; Esri'}).addTo(rMap);
-      drawRouteLine(); renderRouteMarkers(); recalcSegs(); $("cfgLabels").value=routeEditToText();
+      drawRouteLine(); renderRouteMarkers();
       var b=reLoopCoords(); if(b.length) rMap.fitBounds(b,{padding:[30,30]});
       setTimeout(function(){ if(rMap) rMap.invalidateSize(); },300);
     });
@@ -1644,10 +1736,11 @@
     if(state.driver) connectDash();
     var newLang=$("cfgLang").value; if(newLang!==lang){ lang=newLang; lsSet(LS_LANG,lang); }
     if(state.residents>cfg.maxRes) state.residents=cfg.maxRes;
+    bMapSig=null;   // force the guide map to redraw with any edited names/positions/distances/hub
     renderAll();
     flash("saveSettings",t("saved"));
   }
-  function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; cfg.route=[]; N=CHECKPOINTS.length; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
+  function resetSettings(){ if(confirm("Reset all fares & settings to defaults? (Driver number cleared.)")){ cfg=Object.assign({},DEFAULTS); cfg.privT=DEFAULTS.privT.slice(); cfg.priv=DEFAULTS.priv.slice(); cfg.mix=DEFAULTS.mix.slice(); cfg.prem=DEFAULTS.prem.slice(); cfg.labels=[]; cfg.route=[]; N=CHECKPOINTS.length; bMapSig=null; saveCfg(); fillSettings(); renderAll(); flash("resetSettings","✓ Reset"); } }
   function flash(id,txt){ var el=$(id); var old=el.textContent; el.textContent=txt; setTimeout(function(){ el.textContent=old; },1400); }
   function defaultBaseUrl(){ return location.protocol==="file:"?"":(location.origin+location.pathname); }
 
@@ -1919,11 +2012,19 @@
     img.onerror=function(){ if(i<cands.length){ img.src=cands[i++]; } else { img.style.display="none"; fb.style.display=""; } };
     img.src=cands[i++];
   }
+  function tickClock(){
+    var d=new Date(), loc=(lang==="ar")?"ar-EG":"en-GB", txt;
+    try{ txt=d.toLocaleString(loc,{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"}); }
+    catch(e){ txt=d.toLocaleString(); }
+    var els=document.querySelectorAll("[data-clock]");
+    for(var i=0;i<els.length;i++) els[i].textContent="🕒 "+txt;
+  }
   function init(){
     parseUrl();
     initLogo();
     state.launch = LAUNCHING_SOON && !state.driver && !previewAllowed();
     renderAll();
+    tickClock(); setInterval(tickClock,1000);
     if(state.launch){ showLaunchScreen(); }
     else if(state.driver){ startDashboard(); }
     else if(!state.pickup && !state.home){ showHome(); }
@@ -1955,6 +2056,7 @@
     $("resetSettings").addEventListener("click",resetSettings);
     $("previewApp").addEventListener("click",function(){ try{ sessionStorage.setItem("gg_preview","1"); }catch(e){} location.href=location.pathname; });
     $("refreshReports").addEventListener("click",renderReports);
+    if($("expAdd")) $("expAdd").addEventListener("click",addExp);
     $("genQr").addEventListener("click",genQr);
     $("printQr").addEventListener("click",function(){ window.print(); });
     $("copyAutoReply").addEventListener("click",function(){ var b=$("copyAutoReply"); navigator.clipboard&&navigator.clipboard.writeText($("autoReply").value); var o=b.textContent; b.textContent="✓ Copied"; setTimeout(function(){ b.textContent=o; },1400); });
