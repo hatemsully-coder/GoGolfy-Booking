@@ -964,7 +964,29 @@
     var mb=(nm.match(/(\d{1,4})/)||[])[1]; return mb||nm; }
   // distance (m) from each point to the NEXT around the loop (point i → i+1), recomputed from the real OSM
   // positions (straight-line × 1.25, rounded to 5 m). Index 12 = closing edge P13→P1; index 13 = hub slot (unused — the hub routes direct).
-  var DEFAULT_SEG=[540,515,115,450,500,600,395,260,675,250,1005,295,500,0];
+  var DEFAULT_SEG=[615,825,285,520,530,515,585,590,725,270,875,295,500,0];   // real OSM road distances (segments 12,13 east are straight — road data incomplete there)
+  // Real road geometry along the compound's internal OSM roads, keyed by FROM-checkpoint (cp). Each = the road bends
+  // between that point and the next loop point (drawn as the route line; NOT draggable). Built by routing over all
+  // roads (ignoring the gate/private restrictions that make standard routers detour). Segments 12 & 13 (east, by Gate 1)
+  // are omitted = drawn straight, because OSM is missing road links there.
+  var ROADGEO={
+    1:[[29.970831,31.540528],[29.970832,31.540422],[29.97099,31.540422],[29.971247,31.540423],[29.971363,31.540423],[29.971665,31.540425],[29.972166,31.540426],[29.972757,31.540428],[29.972917,31.540353],[29.973002,31.54018],[29.973006,31.53925],[29.97301,31.537671]],
+    2:[[29.97301,31.537671],[29.973015,31.536094],[29.973019,31.534334],[29.973022,31.532679],[29.973023,31.532516],[29.972828,31.532421],[29.97183,31.532161],[29.97183,31.53235],[29.971831,31.532891],[29.971956,31.532901]],
+    3:[[29.972015,31.532947],[29.971831,31.532891],[29.97183,31.53235],[29.97183,31.532161],[29.972828,31.532421],[29.973023,31.532472]],
+    4:[[29.973025,31.532395],[29.973026,31.53211],[29.973028,31.531378],[29.97303,31.530842],[29.973033,31.529737],[29.973036,31.528688],[29.972197,31.528691]],
+    5:[[29.972197,31.528691],[29.973036,31.528688],[29.97304,31.527546],[29.973027,31.526357],[29.973012,31.525007],[29.973009,31.524734]],
+    6:[[29.973015,31.52439],[29.97303,31.523474],[29.973055,31.521924],[29.973056,31.52141],[29.973059,31.520301],[29.973073,31.520188],[29.97309,31.520076],[29.973124,31.5199]],
+    7:[[29.973124,31.5199],[29.973162,31.519724],[29.973189,31.51957],[29.973178,31.519414],[29.973124,31.51927],[29.973033,31.519153],[29.972915,31.519076],[29.972824,31.519052],[29.972714,31.51905],[29.972584,31.519096],[29.97236,31.519259],[29.972276,31.519314],[29.972189,31.519364],[29.972101,31.51941],[29.972011,31.519451],[29.971919,31.519487],[29.971676,31.519562],[29.970984,31.519775],[29.970864,31.519812],[29.970878,31.519915],[29.970894,31.520121],[29.970894,31.521366],[29.970758,31.52137]],
+    8:[[29.970758,31.52137],[29.970894,31.521366],[29.970894,31.520121],[29.970878,31.519915],[29.970864,31.519812],[29.970717,31.519866],[29.969737,31.520226],[29.969532,31.52029],[29.969395,31.520323],[29.969265,31.520336],[29.969077,31.520355],[29.968932,31.520383],[29.968803,31.520462],[29.968703,31.520586],[29.968642,31.520739],[29.968639,31.520969],[29.969127,31.520972]],
+    9:[[29.969127,31.520972],[29.968639,31.520969],[29.968642,31.521792],[29.968644,31.522165],[29.968648,31.523082],[29.968648,31.5232],[29.96865,31.524635],[29.968661,31.526806],[29.968762,31.526733],[29.968905,31.526553],[29.968999,31.526454]],
+    10:[[29.968999,31.526454],[29.968905,31.526553],[29.968803,31.526684],[29.968714,31.526775],[29.968663,31.527036],[29.968667,31.528039],[29.968669,31.528478],[29.968669,31.528607],[29.968601,31.528709]],
+    11:[[29.968671,31.528891],[29.968672,31.529227],[29.968676,31.53022],[29.968677,31.530604],[29.968677,31.530912],[29.968679,31.531341],[29.968681,31.531707],[29.968682,31.532044],[29.968685,31.532797],[29.968688,31.533394],[29.96869,31.533759],[29.968693,31.534536],[29.968697,31.53553],[29.968697,31.535667],[29.968698,31.535799],[29.968699,31.536129],[29.968704,31.53731]]
+  };
+  var ROADDIST={1:616,2:825,3:284,4:518,5:530,6:513,7:583,8:590,9:724,10:270,11:875};   // real road distance (m) per baked segment
+  var roadStale={}, roadInvalid=false;   // baked road invalidated by dragging a point (per-segment) or by add/delete/reorder (all)
+  function roadBends(cp){ return (roadInvalid||roadStale[cp]||!ROADGEO[cp])?[]:ROADGEO[cp]; }     // baked road bends for the loop edge cp → cp+1
+  function edgeBends(p,q){ if(q!==p+1) return []; var mv=viaOf(p); return (mv&&mv.length)?mv:roadBends(p); }  // manual corners override the baked road
+  function distFactor(){ var f=parseFloat(cfg&&cfg.distFactor); return (f>=1&&f<=3)?f:1.25; }     // straight-line → road multiplier for non-routed segments
   var N=CHECKPOINTS.length;  // recomputed from cfg.route after cfg loads
   function segOf(i){ if(cfg.route&&cfg.route[i-1]) return Number(cfg.route[i-1].seg)||0; return DEFAULT_SEG[i-1]||0; }
   function viaOf(i){ var r=cfg.route&&cfg.route[i-1]; return (r&&r.via&&r.via.length)?r.via:[]; }  // road bends from point i to next (1-based)
@@ -1005,7 +1027,7 @@
   function saveCfg(){ lsSet(LS_CFG,JSON.stringify(cfg)); }
   var cfg=loadCfg();
   // one-time migration to the 14-point Andalous Phase-2 layout (replaces any saved 12-point route; keeps fares/phone)
-  if(cfg.routeVer!==6){ cfg.route=[]; cfg.hub=14; cfg.routeVer=6; saveCfg(); }   // v6: renumbered to start at Gate 1 with gates running 1→2→3→4 (positions unchanged)
+  if(cfg.routeVer!==7){ cfg.route=[]; cfg.hub=14; cfg.routeVer=7; saveCfg(); }   // v7: real OSM road distances + road-following route lines (ROADGEO)
   if(cfg.phoneVer!==1){ cfg.phone="201099002282"; cfg.phoneVer=1; saveCfg(); }   // official GoGolfy number — set once, does NOT touch saved checkpoints
   N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
   var lang=lsGet(LS_LANG)||"ar";
@@ -1257,7 +1279,7 @@
     var seq=seqList(), n=seq.length, ia=seq.indexOf(pi), ib=seq.indexOf(di);
     if(ia<0||ib<0||n<2) return [ptCoord(pi), ptCoord(di)];
     function sd(k){ return segOf(seq[k]) || segDist(seq[k], seq[(k+1)%n]); }   // road distance for every loop edge incl. the closing edge (falls back to straight-line only if unset)
-    function viaFwd(k){ var p=seq[k], q=seq[(k+1)%n]; return (q===p+1)?viaOf(p):[]; }
+    function viaFwd(k){ return edgeBends(seq[k], seq[(k+1)%n]); }   // manual corners or baked road bends for this edge
     var total=0; for(var j=0;j<n;j++) total+=sd(j);
     var fwd=0,k=ia; while(k!==ib){ fwd+=sd(k); k=(k+1)%n; }
     var coords=[ptCoord(seq[ia])];
@@ -1289,7 +1311,8 @@
     s.push('<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#eef4ee"/>');
     for(var gx=40;gx<W;gx+=40) s.push('<line x1="'+gx+'" y1="0" x2="'+gx+'" y2="'+H+'" stroke="#e2ece4" stroke-width="1"/>');
     for(var gy=40;gy<H;gy+=40) s.push('<line x1="0" y1="'+gy+'" x2="'+W+'" y2="'+gy+'" stroke="#e2ece4" stroke-width="1"/>');
-    var lpts=seq.map(px); if(lpts.length>1){ s.push('<path d="M'+lpts.map(function(p){return f1(p[0])+' '+f1(p[1]);}).join(' L')+' Z" fill="none" stroke="#c4e2cf" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>'); }
+    var lp=[]; for(var li=0;li<seq.length;li++){ lp.push(px(seq[li])); edgeBends(seq[li],seq[(li+1)%seq.length]).forEach(function(b){ lp.push(pj(b[0],b[1])); }); }
+    if(lp.length>1){ s.push('<path d="M'+lp.map(function(p){return f1(p[0])+' '+f1(p[1]);}).join(' L')+' Z" fill="none" stroke="#c4e2cf" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>'); }
     if(state.pickup&&state.destination){
       var arc=routeArc(state.pickup,state.destination).map(function(c){ return pj(c[0],c[1]); });
       var rp='M'+arc.map(function(p){return f1(p[0])+' '+f1(p[1]);}).join(' L');
@@ -1769,11 +1792,11 @@
     for(var k=0;k<loop.length;k++){
       var a=loop[k], b=loop[(k+1)%loop.length];           // next loop point (hub skipped)
       if(routeEdit[a].man) continue;
-      var via=routeEdit[a].via||[], hasVia=via.length>0;
-      var pts=[[routeEdit[a].lat,routeEdit[a].lng]];
-      via.forEach(function(p){ pts.push(p); });
-      pts.push([routeEdit[b].lat,routeEdit[b].lng]);
-      routeEdit[a].seg=Math.round(pathLen(pts)*(hasVia?1:1.25)/5)*5;
+      var via=routeEdit[a].via||[], cp=a+1, d;
+      if(via.length){ var pts=[[routeEdit[a].lat,routeEdit[a].lng]]; via.forEach(function(p){ pts.push(p); }); pts.push([routeEdit[b].lat,routeEdit[b].lng]); d=pathLen(pts); }      // manual-traced road
+      else if(ROADDIST[cp] && !roadStale[cp] && !roadInvalid){ d=ROADDIST[cp]; }                                                                                                  // baked real road distance
+      else { d=haversine([routeEdit[a].lat,routeEdit[a].lng],[routeEdit[b].lat,routeEdit[b].lng])*distFactor(); }                                                                  // straight-line × factor
+      routeEdit[a].seg=Math.round(d/5)*5;
     }
     if(!routeEdit[h].man) routeEdit[h].seg=0;              // hub's own leg is unused (hub routes direct)
   }
@@ -1800,10 +1823,12 @@
     if($("rlCount")) $("rlCount").textContent=(lang==="ar")?("("+routeEdit.length+" نقطة)"):("("+routeEdit.length+" points)");
     box.querySelectorAll(".rl-name").forEach(function(inp){ inp.addEventListener("input",function(){ var i=+inp.getAttribute("data-i"); routeEdit[i].name=inp.value; if(rMarkers[i]&&rMarkers[i].setTooltipContent) rMarkers[i].setTooltipContent((i+1)+" · "+inp.value); }); });
     box.querySelectorAll(".rl-seg").forEach(function(inp){ inp.addEventListener("input",function(){ var i=+inp.getAttribute("data-i"); routeEdit[i].seg=Number(inp.value)||0; routeEdit[i].man=true; }); });
-    box.querySelectorAll(".rl-del").forEach(function(b){ b.addEventListener("click",function(){ var i=+b.getAttribute("data-i"); if(routeEdit.length<=2){ alert(lang==="ar"?"أبقِ نقطتين على الأقل.":"Keep at least 2 pick-up points."); return; } routeEdit.splice(i,1); var m=routeEdit.length; if(m) routeEdit[(i-1+m)%m].man=false; refreshRoute(); }); });
+    box.querySelectorAll(".rl-del").forEach(function(b){ b.addEventListener("click",function(){ var i=+b.getAttribute("data-i"); if(routeEdit.length<=2){ alert(lang==="ar"?"أبقِ نقطتين على الأقل.":"Keep at least 2 pick-up points."); return; } routeEdit.splice(i,1); var m=routeEdit.length; if(m) routeEdit[(i-1+m)%m].man=false; roadInvalid=true; refreshRoute(); }); });
   }
   function routeEditToText(){ return routeEdit.map(function(r,i){ return (i+1)+". "+r.name+" — "+r.seg+" m"; }).join("\n"); }
-  function reLoopCoords(){ var c=[]; for(var i=0;i<routeEdit.length;i++){ c.push([routeEdit[i].lat,routeEdit[i].lng]); (routeEdit[i].via||[]).forEach(function(p){c.push(p);}); } if(c.length>1) c.push(c[0]); return c; }
+  function reLoopCoords(){ var c=[],n=routeEdit.length,h=hubIdx()-1; if(h<0||h>=n)h=n-1; var loop=[]; for(var i=0;i<n;i++){ if(i!==h) loop.push(i); }
+    for(var k=0;k<loop.length;k++){ var a=loop[k]; c.push([routeEdit[a].lat,routeEdit[a].lng]); var mv=routeEdit[a].via||[]; if(mv.length){ mv.forEach(function(p){c.push([p[0],p[1]]);}); } else { roadBends(a+1).forEach(function(p){c.push([p[0],p[1]]);}); } }
+    if(c.length>1) c.push(c[0]); return c; }
   function drawRouteLine(){ if(!rMap||!window.L) return; if(rLine){ rMap.removeLayer(rLine); } rLine=L.polyline(reLoopCoords(),{color:'#1f9a48',weight:4,opacity:.95,lineJoin:'round'}).addTo(rMap); }
   function routeVertices(){ var V=[]; for(var i=0;i<routeEdit.length;i++){ V.push({ll:[routeEdit[i].lat,routeEdit[i].lng],kind:'pt',i:i}); (routeEdit[i].via||[]).forEach(function(p,vi){ V.push({ll:p,kind:'via',i:i,vi:vi}); }); } return V; }
   function clearRouteMarkers(){ [rMarkers,rViaMk,rAddMk].forEach(function(arr){ arr.forEach(function(m){ try{rMap.removeLayer(m);}catch(e){} }); }); rMarkers=[]; rViaMk=[]; rAddMk=[]; }
@@ -1813,7 +1838,7 @@
     routeEdit.forEach(function(r,idx){
       var m=L.marker([r.lat,r.lng],{draggable:true,zIndexOffset:1000,icon:L.divIcon({className:'',html:'<div class="gg-pin pk">'+(idx+1)+'</div>',iconSize:[28,28],iconAnchor:[14,14]})}).addTo(rMap);
       m.on('drag',function(){ var ll=m.getLatLng(); routeEdit[idx].lat=ll.lat; routeEdit[idx].lng=ll.lng; drawRouteLine(); });
-      m.on('dragend',function(){ var n=routeEdit.length; routeEdit[idx].man=false; routeEdit[(idx-1+n)%n].man=false; refreshRoute(); });   // moving a checkpoint auto-recomputes its two touching distances
+      m.on('dragend',function(){ var n=routeEdit.length; routeEdit[idx].man=false; routeEdit[(idx-1+n)%n].man=false; roadStale[idx]=true; roadStale[idx+1]=true; refreshRoute(); });   // moving a checkpoint auto-recomputes its two touching distances (those segments revert to straight)
       m.on('click',function(){ openPointPopup(idx,m); });
       var gbm=gateRef(idx+1); m.bindTooltip((idx+1)+" · "+r.name+(gbm?"  ·  🏢 "+gbm:""),{direction:'top'});
       rMarkers.push(m);
@@ -1844,14 +1869,15 @@
       +'<div class="rp-row"><button id="rpUp" title="Move earlier">⬆</button><button id="rpDown" title="Move later">⬇</button><button id="rpDel" class="rp-del">🗑 Delete</button></div></div>').openPopup();
     setTimeout(function(){
       var ni=document.getElementById('rpName'); if(ni){ ni.focus(); ni.oninput=function(){ routeEdit[idx].name=ni.value; renderRouteList(); var gbm=gateRef(idx+1); m.setTooltipContent((idx+1)+" · "+ni.value+(gbm?"  ·  🏢 "+gbm:"")); }; }
-      var del=document.getElementById('rpDel'); if(del) del.onclick=function(){ if(routeEdit.length<=2){ alert("Keep at least 2 pick-up points."); return; } routeEdit.splice(idx,1); var m=routeEdit.length; if(m) routeEdit[(idx-1+m)%m].man=false; m.closePopup(); refreshRoute(); };
-      var up=document.getElementById('rpUp'); if(up) up.onclick=function(){ if(idx<=0) return; var t=routeEdit[idx-1]; routeEdit[idx-1]=routeEdit[idx]; routeEdit[idx]=t; var n=routeEdit.length; [idx-2,idx-1,idx].forEach(function(k){ routeEdit[(k+n)%n].man=false; }); m.closePopup(); refreshRoute(); };
-      var dn=document.getElementById('rpDown'); if(dn) dn.onclick=function(){ if(idx>=routeEdit.length-1) return; var t=routeEdit[idx+1]; routeEdit[idx+1]=routeEdit[idx]; routeEdit[idx]=t; var n=routeEdit.length; [idx-1,idx,idx+1].forEach(function(k){ routeEdit[(k+n)%n].man=false; }); m.closePopup(); refreshRoute(); };
+      var del=document.getElementById('rpDel'); if(del) del.onclick=function(){ if(routeEdit.length<=2){ alert("Keep at least 2 pick-up points."); return; } routeEdit.splice(idx,1); var m=routeEdit.length; if(m) routeEdit[(idx-1+m)%m].man=false; roadInvalid=true; m.closePopup(); refreshRoute(); };
+      var up=document.getElementById('rpUp'); if(up) up.onclick=function(){ if(idx<=0) return; var t=routeEdit[idx-1]; routeEdit[idx-1]=routeEdit[idx]; routeEdit[idx]=t; var n=routeEdit.length; [idx-2,idx-1,idx].forEach(function(k){ routeEdit[(k+n)%n].man=false; }); roadInvalid=true; m.closePopup(); refreshRoute(); };
+      var dn=document.getElementById('rpDown'); if(dn) dn.onclick=function(){ if(idx>=routeEdit.length-1) return; var t=routeEdit[idx+1]; routeEdit[idx+1]=routeEdit[idx]; routeEdit[idx]=t; var n=routeEdit.length; [idx-1,idx,idx+1].forEach(function(k){ routeEdit[(k+n)%n].man=false; }); roadInvalid=true; m.closePopup(); refreshRoute(); };
     },40);
   }
   function addRoutePoint(){
     if(!rMap){ return; } var c=rMap.getCenter();
     var prev=routeEdit.length-1; if(prev>=0) routeEdit[prev].man=false;   // recompute the edge into the new point
+    roadInvalid=true;                                                     // topology changed → baked road paths no longer line up; fall back to straight
     routeEdit.push({ name:"New pick-up point", lat:c.lat, lng:c.lng, seg:0, man:false, via:[] });
     refreshRoute();
     var idx=routeEdit.length-1; if(rMarkers[idx]) openPointPopup(idx,rMarkers[idx]);
