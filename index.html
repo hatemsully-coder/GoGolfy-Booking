@@ -388,6 +388,13 @@
   .rl-row .rl-n{width:22px;height:22px;flex:0 0 auto;border-radius:50%;background:var(--green);color:#fff;font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
   .rl-row .rl-name{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:.9rem;font-family:inherit;background:#fff;color:var(--ink);}
   .rl-row .rl-seg{width:60px;padding:8px 6px;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-family:inherit;text-align:center;background:#fff;color:var(--ink);}
+  .rl-hubtag{font-size:.72rem;font-weight:800;color:#0e6e37;background:#e8f5ec;border:1px solid #cfe3d5;border-radius:8px;padding:7px 9px;white-space:nowrap;}
+  .hub-dist{margin-top:10px;border:1px dashed #cfe3d5;border-radius:10px;padding:8px 10px;background:#f6fbf7;}
+  .hub-dist-h{font-size:.78rem;font-weight:800;color:#0e6e37;margin-bottom:6px;}
+  .hl-row{display:flex;align-items:center;gap:8px;font-size:.8rem;padding:3px 0;}
+  .hl-row .hl-n{min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:#e8f5ec;color:#0e6e37;border-radius:6px;font-weight:800;font-size:.72rem;flex:none;}
+  .hl-row .hl-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .hl-row .hl-d{font-weight:800;}
   .rl-row .rl-m{font-size:.7rem;color:var(--muted);font-weight:700;}
   .rl-row .rl-del{width:34px;height:34px;flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:9px;cursor:pointer;font-size:.9rem;}
   .rl-row .rl-del:active{background:#fde8e6;}
@@ -921,8 +928,9 @@
 
   // ---- checkpoints: display order + names + underlying CP (for distance) ----
   // Dar Masr Al Andalous — Phase 2. Points 1–13 = pick-up/destination loop; point 14 = hub/depot (off-loop, direct).
-  // Coordinates are a SCHEMATIC layout for the offline guide map (drag-editable in Admin); the real cart distances
-  // live in DEFAULT_SEG below (road distances supplied by the operator), pinned so they're never auto-overwritten.
+  // Coordinates are REAL OpenStreetMap positions (drag-editable in Admin). Cart distances live in DEFAULT_SEG below,
+  // AUTO-computed from these positions (straight-line ×1.25) and auto-recomputed in the route editor whenever a point
+  // is moved / added / deleted / reordered; typing a value overrides just that one segment until it's touched again.
   // Coordinates anchored to OpenStreetMap reality (Fifth Settlement, New Cairo). "real" = exact OSM coordinate;
   // "≈" = interpolated between real anchors onto the real footprint (drag on the satellite editor to fine-tune).
   var CHECKPOINTS=[
@@ -947,7 +955,7 @@
   function gateRef(i){ var c=CHECKPOINTS[i-1]; var nm=(c?(c.en+" "+c.ar):"")+" "+cpName(i); var m=nm.match(/Gate\s*([1-4])/i)||nm.match(/بوابة\s*([1-4])/); return (m&&GATE_BLDGS[+m[1]])||null; }
   // distance (m) from each point to the NEXT around the loop (point i → i+1), recomputed from the real OSM
   // positions (straight-line × 1.25, rounded to 5 m). Index 12 = closing edge P13→P1; index 13 = hub slot (unused — the hub routes direct).
-  var DEFAULT_SEG=[600,500,450,115,515,540,500,295,1005,250,675,260,395,0];
+  var DEFAULT_SEG=[600,500,450,115,515,545,500,295,1005,250,675,260,400,0];
   var N=CHECKPOINTS.length;  // recomputed from cfg.route after cfg loads
   function segOf(i){ if(cfg.route&&cfg.route[i-1]) return Number(cfg.route[i-1].seg)||0; return DEFAULT_SEG[i-1]||0; }
   function viaOf(i){ var r=cfg.route&&cfg.route[i-1]; return (r&&r.via&&r.via.length)?r.via:[]; }  // road bends from point i to next (1-based)
@@ -1735,23 +1743,51 @@
   }
   function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
   function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
-  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); var sv=(cfg.route&&cfg.route[i-1])||null; routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), man:(sv?!!sv.man:true), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
+  // man=false → distance is AUTO-computed from the point positions (recalcSegs); only an explicitly typed value pins a segment (man=true).
+  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); var sv=(cfg.route&&cfg.route[i-1])||null; routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), man:(sv?!!sv.man:false), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
   function reSegPath(idx){ var n=routeEdit.length, a=routeEdit[idx], b=routeEdit[(idx+1)%n]; var pts=[[a.lat,a.lng]]; (a.via||[]).forEach(function(p){pts.push(p);}); pts.push([b.lat,b.lng]); return pts; }
   function pathLen(pts){ var d=0; for(var k=1;k<pts.length;k++) d+=haversine(pts[k-1],pts[k]); return d; }
-  function recalcSegs(){ for(var i=0;i<routeEdit.length;i++){ if(routeEdit[i].man) continue; var hasVia=(routeEdit[i].via&&routeEdit[i].via.length); var d=pathLen(reSegPath(i))*(hasVia?1:1.25); routeEdit[i].seg=Math.round(d/5)*5; } }
+  // Auto-compute every loop leg from the point positions. The HUB is off-loop (excluded from the ring), so each loop
+  // point's distance is measured to the NEXT loop point (skipping the hub); the closing edge wraps last-loop-point → first.
+  function recalcSegs(){
+    var n=routeEdit.length; if(!n) return;
+    var h=hubIdx()-1; if(h<0||h>=n) h=n-1;                 // hub index in routeEdit (off-loop)
+    var loop=[]; for(var i=0;i<n;i++){ if(i!==h) loop.push(i); }
+    for(var k=0;k<loop.length;k++){
+      var a=loop[k], b=loop[(k+1)%loop.length];           // next loop point (hub skipped)
+      if(routeEdit[a].man) continue;
+      var via=routeEdit[a].via||[], hasVia=via.length>0;
+      var pts=[[routeEdit[a].lat,routeEdit[a].lng]];
+      via.forEach(function(p){ pts.push(p); });
+      pts.push([routeEdit[b].lat,routeEdit[b].lng]);
+      routeEdit[a].seg=Math.round(pathLen(pts)*(hasVia?1:1.25)/5)*5;
+    }
+    if(!routeEdit[h].man) routeEdit[h].seg=0;              // hub's own leg is unused (hub routes direct)
+  }
   function renderRouteList(){
     var box=$("routeList"); if(!box) return; var rows="";
-    for(var i=0;i<routeEdit.length;i++){ var r=routeEdit[i];
-      rows+='<div class="rl-row"><span class="rl-n">'+(i+1)+'</span>'
+    var n=routeEdit.length, h=hubIdx()-1; if(h<0||h>=n) h=n-1;     // hub row (direct to every point)
+    for(var i=0;i<n;i++){ var r=routeEdit[i]; var isHub=(i===h);
+      rows+='<div class="rl-row'+(isHub?" rl-hub":"")+'"><span class="rl-n">'+(i+1)+'</span>'
         +'<input class="rl-name" data-i="'+i+'" value="'+esc(r.name||"")+'" placeholder="'+(lang==="ar"?"الاسم":"Name")+'"/>'
-        +'<input class="rl-seg" data-i="'+i+'" type="number" min="0" step="5" value="'+(Math.round(r.seg)||0)+'"/><span class="rl-m">m</span>'
+        +(isHub
+            ? '<span class="rl-hubtag" title="'+(lang==="ar"?"المحطة — مباشرة لكل النقاط":"Hub — direct to every point")+'">🏠 '+(lang==="ar"?"محطة":"hub")+'</span>'
+            : '<input class="rl-seg" data-i="'+i+'" type="number" min="0" step="5" value="'+(Math.round(r.seg)||0)+'"/><span class="rl-m">m</span>')
         +'<button class="rl-del" data-i="'+i+'" title="'+(lang==="ar"?"حذف":"Delete")+'">🗑</button></div>';
+    }
+    // Hub ↔ every pick-up point: direct distance (haversine ×1.25), auto-computed + symmetric (same to/from). Updates on any change.
+    if(routeEdit[h]){ var hub=routeEdit[h], legs="";
+      for(var k=0;k<n;k++){ if(k===h) continue;
+        var hd=Math.round(haversine([hub.lat,hub.lng],[routeEdit[k].lat,routeEdit[k].lng])*1.25/5)*5;
+        legs+='<div class="hl-row"><span class="hl-n">'+(k+1)+'</span><span class="hl-nm">'+esc(routeEdit[k].name||"")+'</span><span class="hl-d">'+hd+' m</span></div>';
+      }
+      rows+='<div class="hub-dist"><div class="hub-dist-h">🏠 '+(lang==="ar"?"مسافات المحطة ↔ كل نقطة (مباشرة · تلقائية)":"Hub ↔ every point (direct · auto)")+'</div>'+legs+'</div>';
     }
     box.innerHTML=rows;
     if($("rlCount")) $("rlCount").textContent=(lang==="ar")?("("+routeEdit.length+" نقطة)"):("("+routeEdit.length+" points)");
     box.querySelectorAll(".rl-name").forEach(function(inp){ inp.addEventListener("input",function(){ var i=+inp.getAttribute("data-i"); routeEdit[i].name=inp.value; if(rMarkers[i]&&rMarkers[i].setTooltipContent) rMarkers[i].setTooltipContent((i+1)+" · "+inp.value); }); });
     box.querySelectorAll(".rl-seg").forEach(function(inp){ inp.addEventListener("input",function(){ var i=+inp.getAttribute("data-i"); routeEdit[i].seg=Number(inp.value)||0; routeEdit[i].man=true; }); });
-    box.querySelectorAll(".rl-del").forEach(function(b){ b.addEventListener("click",function(){ var i=+b.getAttribute("data-i"); if(routeEdit.length<=2){ alert(lang==="ar"?"أبقِ نقطتين على الأقل.":"Keep at least 2 pick-up points."); return; } routeEdit.splice(i,1); refreshRoute(); }); });
+    box.querySelectorAll(".rl-del").forEach(function(b){ b.addEventListener("click",function(){ var i=+b.getAttribute("data-i"); if(routeEdit.length<=2){ alert(lang==="ar"?"أبقِ نقطتين على الأقل.":"Keep at least 2 pick-up points."); return; } routeEdit.splice(i,1); var m=routeEdit.length; if(m) routeEdit[(i-1+m)%m].man=false; refreshRoute(); }); });
   }
   function routeEditToText(){ return routeEdit.map(function(r,i){ return (i+1)+". "+r.name+" — "+r.seg+" m"; }).join("\n"); }
   function reLoopCoords(){ var c=[]; for(var i=0;i<routeEdit.length;i++){ c.push([routeEdit[i].lat,routeEdit[i].lng]); (routeEdit[i].via||[]).forEach(function(p){c.push(p);}); } if(c.length>1) c.push(c[0]); return c; }
@@ -1795,9 +1831,9 @@
       +'<div class="rp-row"><button id="rpUp" title="Move earlier">⬆</button><button id="rpDown" title="Move later">⬇</button><button id="rpDel" class="rp-del">🗑 Delete</button></div></div>').openPopup();
     setTimeout(function(){
       var ni=document.getElementById('rpName'); if(ni){ ni.focus(); ni.oninput=function(){ routeEdit[idx].name=ni.value; renderRouteList(); var gbm=gateRef(idx+1); m.setTooltipContent((idx+1)+" · "+ni.value+(gbm?"  ·  🏢 "+gbm:"")); }; }
-      var del=document.getElementById('rpDel'); if(del) del.onclick=function(){ if(routeEdit.length<=2){ alert("Keep at least 2 pick-up points."); return; } routeEdit.splice(idx,1); m.closePopup(); refreshRoute(); };
-      var up=document.getElementById('rpUp'); if(up) up.onclick=function(){ if(idx<=0) return; var t=routeEdit[idx-1]; routeEdit[idx-1]=routeEdit[idx]; routeEdit[idx]=t; m.closePopup(); refreshRoute(); };
-      var dn=document.getElementById('rpDown'); if(dn) dn.onclick=function(){ if(idx>=routeEdit.length-1) return; var t=routeEdit[idx+1]; routeEdit[idx+1]=routeEdit[idx]; routeEdit[idx]=t; m.closePopup(); refreshRoute(); };
+      var del=document.getElementById('rpDel'); if(del) del.onclick=function(){ if(routeEdit.length<=2){ alert("Keep at least 2 pick-up points."); return; } routeEdit.splice(idx,1); var m=routeEdit.length; if(m) routeEdit[(idx-1+m)%m].man=false; m.closePopup(); refreshRoute(); };
+      var up=document.getElementById('rpUp'); if(up) up.onclick=function(){ if(idx<=0) return; var t=routeEdit[idx-1]; routeEdit[idx-1]=routeEdit[idx]; routeEdit[idx]=t; var n=routeEdit.length; [idx-2,idx-1,idx].forEach(function(k){ routeEdit[(k+n)%n].man=false; }); m.closePopup(); refreshRoute(); };
+      var dn=document.getElementById('rpDown'); if(dn) dn.onclick=function(){ if(idx>=routeEdit.length-1) return; var t=routeEdit[idx+1]; routeEdit[idx+1]=routeEdit[idx]; routeEdit[idx]=t; var n=routeEdit.length; [idx-1,idx,idx+1].forEach(function(k){ routeEdit[(k+n)%n].man=false; }); m.closePopup(); refreshRoute(); };
     },40);
   }
   function addRoutePoint(){
