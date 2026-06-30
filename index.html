@@ -270,6 +270,20 @@
   .d-near{font-size:.8rem;color:var(--green-dark);font-weight:800;margin-top:4px;}
   .sched-badge{display:inline-block;font-size:.76rem;font-weight:800;color:#8a5a00;background:#fff4d6;border-radius:8px;padding:3px 8px;margin-top:5px;}
   .sched-badge.urgent{color:#fff;background:#e23b3b;}
+  .now-badge{display:inline-block;font-size:.76rem;font-weight:800;color:#0e6e37;background:#e7f6ee;border-radius:8px;padding:3px 8px;margin-top:5px;}
+  .howcard{padding:0;overflow:hidden;}
+  .howcard summary{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;padding:14px 16px;font-weight:800;color:var(--green-dark);font-size:.98rem;}
+  .howcard summary::-webkit-details-marker{display:none;}
+  .howcard summary::after{content:"▾";color:var(--muted);font-weight:700;}
+  .howcard[open] summary::after{content:"▴";}
+  .how-body{padding:0 16px 14px;color:var(--ink);font-size:.9rem;}
+  .how-steps{margin:0 0 8px;padding-inline-start:20px;}
+  .how-steps li{margin:4px 0;line-height:1.4;}
+  .how-h{font-weight:800;color:var(--green-dark);margin:10px 0 5px;font-size:.86rem;}
+  .how-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:center;}
+  .how-grid b{justify-self:end;}
+  .how-note{background:#f6fbf7;border:1px dashed #cfe3d5;border-radius:10px;padding:8px 10px;line-height:1.45;}
+  .eta-live{color:#2b7fd8;font-weight:800;}
   .badge.manual{background:#eef;color:#3a3aa0;}
   .drv-actions{margin-bottom:12px;}
   .add-ride-btn{width:100%;padding:12px;border:2px dashed var(--green);border-radius:14px;background:#fff;color:var(--green-dark);font-weight:800;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
@@ -489,6 +503,10 @@
   <main>
     <section id="screen-book">
       <button class="nav-back" id="bookBack"><span class="arr">←</span><span id="bookBackTxt">Main page</span></button>
+      <details class="card howcard" id="howCard">
+        <summary id="howSummary">ℹ️ How it works &amp; fares</summary>
+        <div class="how-body" id="howBody"></div>
+      </details>
       <div class="card">
         <div class="label" id="lblPickup">📍 Pickup</div>
         <div class="pickup-box">
@@ -604,7 +622,7 @@
           <h1 id="homeTitle">Need a ride?</h1>
           <p id="homeSub"></p>
           <div class="cta-hint" id="ctaHint"></div>
-          <button class="confirm-btn cta" id="homeBook">🛺 <span id="homeBookTxt">Book a ride</span></button>
+          <button class="confirm-btn cta" id="homeBook"><svg width="26" height="20" viewBox="-14 -13 28 24" style="vertical-align:middle;margin-inline-end:8px"><g fill="#fff"><rect x="-12" y="-10" width="21" height="2.4" rx="1.2"/><rect x="-10.5" y="-9" width="2" height="6"/><rect x="6.6" y="-9" width="2" height="6.6"/><path d="M-11 -2 V-7 H-3 V-9 H1 L3 -3 Z"/><rect x="-12.5" y="-2.6" width="22" height="3.4" rx="1.6"/><circle cx="-6.5" cy="3.6" r="3.1"/><circle cx="5.5" cy="3.6" r="3.1"/></g></svg><span id="homeBookTxt">Book a ride</span></button>
           <div class="chips">
             <span class="chip" id="chip1"></span>
             <span class="chip" id="chip2"></span>
@@ -765,6 +783,16 @@
           <span class="tg-label">💬 WhatsApp driver alert (turn on after WhatsApp API)</span>
           <label class="switch"><input type="checkbox" id="cfgWa" /><span class="slider"></span></label>
         </div>
+        <div class="sec-title">🕒 Working hours &amp; scheduling</div>
+        <div class="toggle-row">
+          <span class="tg-label">📅 Allow scheduling rides (off → ride-now only, during hours)</span>
+          <label class="switch"><input type="checkbox" id="cfgSchedEnabled" /><span class="slider"></span></label>
+        </div>
+        <div class="g2">
+          <div class="field"><label>Open from (hour 0–23)</label><div class="desc">Cart starts. 6 = 6 AM.</div><input type="number" id="cfgWorkStart" min="0" max="23" step="1" /></div>
+          <div class="field"><label>Open until (hour 1–24)</label><div class="desc">Cart stops. 24 = midnight.</div><input type="number" id="cfgWorkEnd" min="1" max="24" step="1" /></div>
+        </div>
+        <div class="field"><div class="desc">In working hours residents can ride <b>now</b> or <b>schedule</b> (same day). Outside hours → <b>scheduling only</b>. Bookings of <b>5+ residents</b> are scheduled-only, any day. Scheduled rides need a slot ≥ 15 min ahead (15-min steps).</div></div>
         <div class="sec-title">🛰️ Live tracking & ETA</div>
         <div class="field">
           <div class="desc">The cart's live position comes from the <b>driver's phone</b> (Driver page → <b>“Share my live location”</b>). The resident then sees the 🚗 and the arrival ETA on the booking &amp; after-booking maps. Tune the ETA with the cart speed and buffer below.</div>
@@ -1012,6 +1040,11 @@
     etaBuffer:2,                                   // minutes added on top of the ETA as a buffer for the driver
     etaGreen:3,                                    // driver triage: a waiting ride is GREEN up to this many minutes
     etaYellow:7,                                   // YELLOW up to this many minutes; RED beyond it
+    schedEnabled:true,                             // master switch: allow scheduling rides ahead (Admin → Settings)
+    workStart:6,                                   // working hours start (hour 0–23): before this, only scheduling is open
+    workEnd:24,                                    // working hours end (hour 1–24; 24 = midnight): after this, only scheduling
+    schedLeadMin:15,                               // a scheduled ride must be at least this many minutes ahead; picker steps in 15-min slots
+    bigGroupMin:5,                                 // bookings of this many residents or more are scheduled-only, any day/time
     labels:[],                                     // (legacy) name overrides
     route:[],                                      // editable [{name, seg(m to next)}]; empty = built-in 12-point loop
     cost:0,                                        // cost per ride (EGP) for profit/margin
@@ -1084,6 +1117,8 @@
       locDenied:"Location permission denied. Please allow location to find the nearest rider and share it.", locNoGeo:"Location is not available on this device.",
       dlTitle:"🚗 Driver location (live)", dlNote:"Updating live as the driver moves toward you.", dlWait:"Waiting for the driver to share their location…", etaArrive:"🚗 Arrives in ~{n} min",
       lblWhen:"🕒 When", whenNow:"Ride now", whenLater:"Schedule for later", whenNowHint:"A driver comes as soon as possible.", whenSet:"Scheduled for:",
+      bigGroupNote:"Groups of 5+ are scheduled only — pick any day & time.", afterHoursNote:"Outside working hours — scheduling only.", bkClosed:"Booking is closed right now.", bkPickTime:"Pick a time for your scheduled ride.", bkTooSoon:"Choose a time at least 15 minutes ahead.", bkSameDay:"Scheduled rides are same-day only.", nowTag:"⚡ Now", schedTag:"📅 Scheduled",
+      howTitle:"ℹ️ How it works & fares", howClose:"Got it",
       nearest:"Nearest — pick up next", away:"~{m} m · ~{min} min from you", nearHint:"Turn on your location (button above) to see who's nearest and on your way.",
       inMin:"in {n} min", dueNow:"due now", b_manual:"✋ Manual",
       addRide:"Add a ride manually", arfTitle:"Add a ride", arfPickupL:"Pickup point", arfDestL:"Destination", arfResL:"Residents", arfWhenL:"When (leave empty = now)", arfSave:"Add ride", arfCancel:"Cancel", arfErr:"Choose a pickup and a different destination."
@@ -1138,6 +1173,8 @@
       locDenied:"تم رفض إذن الموقع. فضلاً اسمح بالموقع لإيجاد الأقرب ومشاركته.", locNoGeo:"الموقع غير متاح على هذا الجهاز.",
       dlTitle:"🚗 موقع السائق (مباشر)", dlNote:"يتم التحديث مباشرة أثناء تحرك السائق نحوك.", dlWait:"في انتظار مشاركة السائق لموقعه…", etaArrive:"🚗 يصل خلال ~{n} دقيقة",
       lblWhen:"🕒 الموعد", whenNow:"الآن", whenLater:"جدولة لاحقًا", whenNowHint:"يصل السائق في أقرب وقت ممكن.", whenSet:"مجدولة في:",
+      bigGroupNote:"حجوزات 5 ركاب فأكثر بالجدولة فقط — اختر أي يوم ووقت.", afterHoursNote:"خارج ساعات العمل — الجدولة فقط.", bkClosed:"الحجز مغلق حاليًا.", bkPickTime:"اختر موعدًا لرحلتك المجدولة.", bkTooSoon:"اختر وقتًا بعد 15 دقيقة على الأقل.", bkSameDay:"الرحلات المجدولة لنفس اليوم فقط.", nowTag:"⚡ الآن", schedTag:"📅 مجدولة",
+      howTitle:"ℹ️ كيف يعمل والأسعار", howClose:"تمام",
       nearest:"الأقرب — التالي", away:"~{m} م · ~{min} د منك", nearHint:"فعّل موقعك (الزر بالأعلى) لمعرفة الأقرب إليك وفي طريقك.",
       inMin:"خلال {n} دقيقة", dueNow:"مستحقة الآن", b_manual:"✋ يدوي",
       addRide:"إضافة رحلة يدويًا", arfTitle:"إضافة رحلة", arfPickupL:"نقطة الانطلاق", arfDestL:"الوجهة", arfResL:"عدد الركاب", arfWhenL:"الموعد (اتركه فارغًا = الآن)", arfSave:"إضافة الرحلة", arfCancel:"إلغاء", arfErr:"اختر نقطة انطلاق ووجهة مختلفة."
@@ -1302,6 +1339,18 @@
   // Offline guide map: a self-drawn SVG schematic (no satellite tiles, no Leaflet, no internet).
   // Points are placed by real coordinates so the layout is accurate; the route follows the real path.
   var liveCar=null;   // {lat,lng} of the cart — from the driver's live location (GPS share or Telegram feed)
+  // GoGolfy golf-cart glyph (matches the logo) — a side-view cart, centered at (cx,cy), width w px, in the given colour.
+  function cartGlyph(cx,cy,w,fill){
+    var s=(w/26), t='translate('+(+cx).toFixed(1)+','+(+cy).toFixed(1)+') scale('+s.toFixed(3)+')';
+    return '<g transform="'+t+'" fill="'+fill+'">'
+      +'<rect x="-12" y="-10" width="21" height="2.4" rx="1.2"/>'        // canopy roof
+      +'<rect x="-10.5" y="-9" width="2" height="6"/>'                   // rear post
+      +'<rect x="6.6" y="-9" width="2" height="6.6"/>'                   // front post
+      +'<path d="M-11 -2 V-7 H-3 V-9 H1 L3 -3 Z"/>'                      // seat + windscreen
+      +'<rect x="-12.5" y="-2.6" width="22" height="3.4" rx="1.6"/>'     // chassis
+      +'<circle cx="-6.5" cy="3.6" r="3.1"/><circle cx="5.5" cy="3.6" r="3.1"/>'   // wheels
+      +'</g>';
+  }
   // Builds the offline SVG guide map (loop + route + numbered points + the live car) — reused on booking & after-booking.
   function guideSvgString(){
     var P=bookProj(), pj=P.proj, W=P.W, H=P.H, h=hubIdx(), seq=seqList();
@@ -1342,7 +1391,7 @@
       }
     }
     if(liveCar&&liveCar.lat!=null){ var cc=pj(liveCar.lat,liveCar.lng), cx=Math.max(12,Math.min(W-12,cc[0])), cy=Math.max(14,Math.min(H-12,cc[1]));
-      s.push('<g><circle cx="'+f1(cx)+'" cy="'+f1(cy)+'" r="18" fill="#2b7fd8" opacity="0.16"/><circle cx="'+f1(cx)+'" cy="'+f1(cy)+'" r="14" fill="#2b7fd8" stroke="#ffffff" stroke-width="3"/><text x="'+f1(cx)+'" y="'+f1(cy+5)+'" text-anchor="middle" font-size="15">🚗</text></g>'); }
+      s.push('<g><circle cx="'+f1(cx)+'" cy="'+f1(cy)+'" r="18" fill="#2b7fd8" opacity="0.16"/><circle cx="'+f1(cx)+'" cy="'+f1(cy)+'" r="14" fill="#2b7fd8" stroke="#ffffff" stroke-width="3"/>'+cartGlyph(cx,cy,20,"#ffffff")+'</g>'); }
     s.push('</svg>');
     return s.join('');
   }
@@ -1364,6 +1413,7 @@
     var cap=$("bookMapCap"); if(cap){ var hh="";
       if(state.pickup) hh+='<span class="lg"><span class="dot pk">'+state.pickup+'</span> <bdi><b>'+esc(t("mapPickWait"))+'</b> — '+esc(cpName(state.pickup))+'</bdi></span>';
       if(state.destination) hh+='<span class="lg"><span class="dot ds">'+state.destination+'</span> <bdi><b>'+esc(t("mapDestLeg"))+'</b> — '+esc(cpName(state.destination))+'</bdi></span>';
+      var eta=state.pickup?etaTo(state.pickup):null; if(eta!=null) hh+='<span class="lg eta-live">'+esc(t("etaArrive").replace("{n}",eta))+'</span>';
       hh+='<span class="lg" style="color:var(--muted)">'+esc(state.destination?t("mapTapChange"):t("mapTapHint"))+'</span>';
       cap.innerHTML=hh; }
   }
@@ -1422,20 +1472,58 @@
   function pad2x(n){ return (n<10?"0":"")+n; }
   function localDT(offsetMin){ var d=new Date(Date.now()+(offsetMin||0)*60000); return d.getFullYear()+"-"+pad2x(d.getMonth()+1)+"-"+pad2x(d.getDate())+"T"+pad2x(d.getHours())+":"+pad2x(d.getMinutes()); }
   function fmtSched(v){ try{ var d=new Date(v); if(isNaN(d.getTime())) return String(v); return d.toLocaleString(lang==="ar"?"ar-EG":undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}); }catch(e){ return String(v); } }
+  function dtStr(d){ return d.getFullYear()+"-"+pad2x(d.getMonth()+1)+"-"+pad2x(d.getDate())+"T"+pad2x(d.getHours())+":"+pad2x(d.getMinutes()); }
+  // ---- working hours + scheduling rules ----
+  function workStartH(){ var v=parseInt(cfg.workStart,10); return (v>=0&&v<=23)?v:6; }
+  function workEndH(){ var v=parseInt(cfg.workEnd,10); return (v>=1&&v<=24)?v:24; }
+  function nowH(){ var d=new Date(); return d.getHours()+d.getMinutes()/60; }
+  function withinHours(){ var h=nowH(); return h>=workStartH() && h<workEndH(); }          // is the cart operating right now?
+  function schedOn(){ return cfg.schedEnabled!==false; }                                     // scheduling master switch
+  function bigGroup(){ return state.residents>=(parseInt(cfg.bigGroupMin,10)||5); }          // 5+ residents → scheduled-only, any day
+  function leadMin(){ var v=parseInt(cfg.schedLeadMin,10); return (v>=0)?v:15; }
+  function nowAllowed(){ return withinHours() && !bigGroup(); }                               // immediate ride allowed?
+  function schedAllowed(){ return schedOn(); }                                               // scheduling offered?
+  function schedMinDT(){ var lead=localDT(leadMin()); if(bigGroup()) return lead;            // big group: any day, just the lead time
+    var d=new Date(), ws=workStartH(); if(d.getHours()<ws){ d.setHours(ws,0,0,0); var s=dtStr(d); return (s>lead)?s:lead; } return lead; }
+  function schedMaxDT(){ if(bigGroup()) return ""; var d=new Date(), we=workEndH(); if(we>=24){ d.setHours(23,59,0,0); } else { d.setHours(we,0,0,0); } return dtStr(d); }
+  // can a booking happen at all right now (given hours/scheduling/group)?
+  function bookingOpen(){ return nowAllowed() || schedAllowed(); }
   function renderWhen(){
     var box=$("whenTypes"); if(!box) return; box.innerHTML="";
-    var cur=state.scheduledFor?"later":"now";
-    [["now","⏱️ "+t("whenNow")],["later","📅 "+t("whenLater")]].forEach(function(o){
+    var inp=$("schedTime"), hint=$("whenHint");
+    var canNow=nowAllowed(), canSched=schedAllowed(), forceSched=!canNow;     // after-hours OR 5+ residents → must schedule
+    if(forceSched && canSched && !state.scheduledFor) state.scheduledFor=schedMinDT();
+    if(canNow && !state.scheduledFor) state.scheduledFor=state.scheduledFor;  // (keep null → "now")
+    var cur=(state.scheduledFor || forceSched) ? "later" : "now";
+    var opts=[]; if(canNow) opts.push(["now",t("nowTag")]); if(canSched) opts.push(["later",t("schedTag")]);
+    opts.forEach(function(o){
       var b=document.createElement("button"); b.className="rt"+(cur===o[0]?" sel":"");
       b.innerHTML='<div class="rt-t">'+o[1]+'</div>';
       b.addEventListener("click",function(){
-        if(o[0]==="now"){ state.scheduledFor=null; $("schedTime").classList.add("hidden"); }
-        else { var inp=$("schedTime"); inp.classList.remove("hidden"); if(!inp.value){ inp.min=localDT(0); inp.value=localDT(30); } state.scheduledFor=inp.value; inp.focus(); }
-        renderWhen();
+        if(o[0]==="now"){ state.scheduledFor=null; }
+        else if(!state.scheduledFor){ state.scheduledFor=schedMinDT(); }
+        renderWhen(); updateFare();
       });
       box.appendChild(b);
     });
-    var hint=$("whenHint"); if(hint) hint.textContent = state.scheduledFor ? (t("whenSet")+" "+fmtSched(state.scheduledFor)) : t("whenNowHint");
+    var showSched=(cur==="later" && canSched);
+    if(inp){ inp.min=schedMinDT(); var mx=schedMaxDT(); if(mx){ inp.max=mx; } else { inp.removeAttribute("max"); } inp.step=900;
+      if(showSched){ var v=state.scheduledFor; if(!v||v<inp.min||(mx&&v>mx)) v=schedMinDT(); inp.value=v; state.scheduledFor=v; inp.classList.remove("hidden"); }
+      else { inp.classList.add("hidden"); } }
+    if(hint){ var msg;
+      if(!canNow && !canSched) msg=t("bkClosed");
+      else if(bigGroup()) msg=t("bigGroupNote");
+      else if(forceSched) msg=t("afterHoursNote");
+      else if(state.scheduledFor) msg=t("whenSet")+" "+fmtSched(state.scheduledFor);
+      else msg=t("whenNowHint");
+      hint.textContent=msg; }
+  }
+  // Why a booking can't proceed right now ("" = fine). Used to gate the Confirm button.
+  function bookBlockReason(){
+    if(!bookingOpen()) return t("bkClosed");
+    if(!nowAllowed()){ if(!schedAllowed()) return t("bkClosed"); if(!state.scheduledFor) return t("bkPickTime"); }
+    if(state.scheduledFor){ var v=state.scheduledFor, mn=schedMinDT(), mx=schedMaxDT(); if(v<mn) return t("bkTooSoon"); if(mx && v>mx) return t("bkSameDay"); }
+    return "";
   }
 
   function fareBreakText(f){
@@ -1446,19 +1534,46 @@
     return typeName(state.rideType)+" · "+iso(state.residents+" × "+money(f.each))+" "+t("each");
   }
   function updateFare(){
-    var ready=(state.pickup&&state.destination);
+    var ready=(state.pickup&&state.destination), block=ready?bookBlockReason():"";
     if(ready){
       var f=computeFare(state.rideType,state.residents,state.pickup,state.destination);
       $("fareAmt").textContent=money(f.total);
       $("fareBreak").innerHTML=fareBreakText(f);
-      $("confirmBtn").disabled=false; $("confirmBtn").classList.add("ready"); $("confirmHint").textContent=t("hintGo"); $("confirmHint").classList.add("ready");
     }else{
       $("fareAmt").textContent="—";
       $("fareBreak").textContent=state.pickup?t("selDest"):t("setBoth");
-      $("confirmBtn").disabled=true; $("confirmBtn").classList.remove("ready"); $("confirmHint").textContent=state.pickup?t("hintPick"):t("hintScan"); $("confirmHint").classList.remove("ready");
+    }
+    if(ready && !block){
+      $("confirmBtn").disabled=false; $("confirmBtn").classList.add("ready"); $("confirmHint").textContent=t("hintGo"); $("confirmHint").classList.add("ready");
+    }else{
+      $("confirmBtn").disabled=true; $("confirmBtn").classList.remove("ready"); $("confirmHint").classList.remove("ready");
+      $("confirmHint").textContent = block || (state.pickup?t("hintPick"):t("hintScan"));
     }
   }
-  function renderAll(){ applyStaticText(); renderPickup(); renderPickupGrid(); renderDest(); updateMap(); renderRtypes(); renderPay(); renderRes(); renderWhen(); updateFare(); }
+  function renderHow(){
+    var sm=$("howSummary"); if(sm) sm.textContent=t("howTitle");
+    var el=$("howBody"); if(!el) return; var ar=(lang==="ar"), u=cur(), ws=workStartH(), we=workEndH();
+    function h12(h){ h=((h%24)+24)%24; var ap=h<12?(ar?"ص":"AM"):(ar?"م":"PM"); var hh=h%12; if(hh===0) hh=12; return hh+" "+ap; }
+    var hours=h12(ws)+" – "+(we>=24?(ar?"منتصف الليل":"midnight"):h12(we));
+    var steps=ar?["اختر نقطة انطلاقك (أو امسح رمز QR عليها).","اختر وجهتك من الخريطة أو القائمة.","حدد عدد الركاب.","اختر «الآن» أو «جدولة».","اختر طريقة الدفع ثم أكِّد.","سيصل الإخطار للسائق وسترى العربة مباشرة مع وقت الوصول."]
+      :["Pick your pick-up point (or scan its QR).","Choose your destination on the map or list.","Set the number of riders.","Choose “Ride now” or “Schedule”.","Pick a payment method, then Confirm.","The driver is alerted — you'll see the cart live with its ETA."];
+    var html='<ol class="how-steps">'+steps.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ol>';
+    html+='<div class="how-h">'+(ar?"الأسعار (لكل راكب)":"Fares (per person)")+'</div><div class="how-grid">'
+      +'<span>🔒 '+(ar?"خاصة (فردية)":"Private (Single)")+'</span><b>'+cfg.priv[0]+"/"+cfg.priv[1]+"/"+cfg.priv[2]+' '+u+'</b>'
+      +'<span>👥 '+(ar?"جماعية (2)":"Group (2)")+'</span><b>'+cfg.mix[1]+' '+u+' '+(ar?"للفرد":"each")+'</b>'
+      +'<span>👥 '+(ar?"جماعية (3+)":"Group (3+)")+'</span><b>'+cfg.mix[2]+' '+u+' '+(ar?"للفرد":"each")+'</b></div>';
+    html+='<div class="how-note" style="margin-top:6px">'
+      +'<div>🔒 <b>'+(ar?"خاصة (فردية)":"Private (Single)")+'</b> — '+(ar?"من نقطة إلى نقطة — السعر حسب المسافة بين النقطتين.":"checkpoint → checkpoint — priced by the distance between the two points.")+'</div>'
+      +'<div>👥 <b>'+(ar?"جماعية (مشتركة)":"Group (shared)")+'</b> — '+(ar?"سعر ثابت للفرد إلى أي نقطة.":"a flat fare per person to any checkpoint.")+'</div>'
+      +'</div>';
+    html+='<div class="how-h">'+(ar?"المواعيد والجدولة":"Hours & scheduling")+'</div><div class="how-note">'
+      +'🕒 <b>'+hours+'</b>. '
+      +(ar?"خارجها: الجدولة فقط. حجوزات 5 ركاب فأكثر: بالجدولة فقط (أي يوم). الرحلة المجدولة لنفس اليوم وقبل 15 دقيقة على الأقل."
+          :"Outside these hours: scheduling only. 5+ riders: scheduled only (any day). Scheduled rides are same-day, ≥ 15 min ahead.")
+      +'</div>';
+    el.innerHTML=html;
+  }
+  function renderAll(){ applyStaticText(); renderPickup(); renderPickupGrid(); renderDest(); updateMap(); renderRtypes(); renderPay(); renderRes(); renderWhen(); renderHow(); updateFare(); }
 
   // ---- confirm / notify ----
   function pickupLabel(){ return state.home?t("home"):cpName(state.pickup); }
@@ -1901,6 +2016,8 @@
     $("cfgPhone").value=cfg.phone; $("cfgLang").value=lang; $("cfgMaxRes").value=cfg.maxRes; $("cfgPin").value=cfg.adminPin||""; $("cfgHome").checked=cfg.homeEnabled!==false; $("cfgWa").checked=cfg.waEnabled===true;
     if($("cfgCartSpeed")) $("cfgCartSpeed").value=cfg.cartSpeed||14; if($("cfgEtaBuffer")) $("cfgEtaBuffer").value=(cfg.etaBuffer!=null?cfg.etaBuffer:2);
     if($("cfgEtaGreen")) $("cfgEtaGreen").value=cfg.etaGreen||3; if($("cfgEtaYellow")) $("cfgEtaYellow").value=cfg.etaYellow||7;
+    if($("cfgSchedEnabled")) $("cfgSchedEnabled").checked=cfg.schedEnabled!==false;
+    if($("cfgWorkStart")) $("cfgWorkStart").value=(cfg.workStart!=null?cfg.workStart:6); if($("cfgWorkEnd")) $("cfgWorkEnd").value=(cfg.workEnd!=null?cfg.workEnd:24);
     if($("cfgHub")) $("cfgHub").value=cfg.hub||14;
     // pick-up points are shown/edited in the live #routeList (rendered by openRouteMap → renderRouteList)
     $("cfgPt1").value=cfg.privT[0]; $("cfgPt2").value=cfg.privT[1];
@@ -1927,6 +2044,9 @@
     if($("cfgEtaBuffer")) cfg.etaBuffer=Math.max(0,Number($("cfgEtaBuffer").value)||0);
     if($("cfgEtaGreen")) cfg.etaGreen=Math.max(1,Number($("cfgEtaGreen").value)||3);
     if($("cfgEtaYellow")) cfg.etaYellow=Math.max(2,Number($("cfgEtaYellow").value)||7);
+    if($("cfgSchedEnabled")) cfg.schedEnabled=$("cfgSchedEnabled").checked;
+    if($("cfgWorkStart")){ var ws=Number($("cfgWorkStart").value); cfg.workStart=(ws>=0&&ws<=23)?ws:6; }
+    if($("cfgWorkEnd")){ var we=Number($("cfgWorkEnd").value); cfg.workEnd=(we>=1&&we<=24)?we:24; }
     if(routeEdit&&routeEdit.length){
       recalcSegs();   // auto-fill only segments NOT manually typed (man flag); typed values are preserved
       cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); if(r.man) o.man=true; return o; });
@@ -2038,12 +2158,13 @@
   }
   function stopDriverLocPoll(){ if(driverLocTimer){ clearInterval(driverLocTimer); driverLocTimer=null; } }
   // ETA (minutes) from the live cart to the resident's pickup = distance ÷ cart speed + buffer.
-  function etaMins(){
-    if(!liveCar||liveCar.lat==null||!lastBooking||!lastBooking.pickup||lastBooking.pickup==="home") return null;
-    var pc=ptCoord(lastBooking.pickup); var d=haversine([liveCar.lat,liveCar.lng],pc);
+  function etaTo(pickup){
+    if(!liveCar||liveCar.lat==null||!pickup||pickup==="home") return null;
+    var pc=ptCoord(pickup); var d=haversine([liveCar.lat,liveCar.lng],pc);
     var mpm=(Number(cfg.cartSpeed)||14)*1000/60;   // metres per minute
     return Math.max(1, Math.ceil(d/mpm) + (Number(cfg.etaBuffer)||0));
   }
+  function etaMins(){ return lastBooking?etaTo(lastBooking.pickup):null; }
   // After-booking: show the live cart on the SAME offline guide map (pickup + route + 🚗) + the ETA.
   function showDriverLoc(){
     var card=$("driverLocCard"); if(!card) return;
@@ -2160,7 +2281,9 @@
         var toDue=Math.round((Date.parse(r.scheduledFor)-nowMs)/60000);
         var urgent = toDue<=5;
         var when = toDue>0 ? esc(t("inMin").replace("{n}",toDue)) : ('⚠️ '+esc(t("dueNow")));
-        sched='<div class="sched-badge'+(urgent?' urgent':'')+'">📅 '+esc(r.scheduledStr||fmtSched(r.scheduledFor))+' · '+when+'</div>';
+        sched='<div class="sched-badge'+(urgent?' urgent':'')+'">'+esc(t("schedTag"))+' '+esc(r.scheduledStr||fmtSched(r.scheduledFor))+' · '+when+'</div>';
+      } else {
+        sched='<div class="now-badge">'+esc(t("nowTag"))+'</div>';
       }
       return '<div class="dcard s-new '+waitCls+(id===nearestId?' nearest':'')+'"><div class="d-top"><div>'
         +'<div class="d-bkno"><bdi>#'+esc(id)+'</bdi></div>'
@@ -2194,7 +2317,7 @@
         mk.bindTooltip((r.pickup)+" · "+cpName(r.pickup),{permanent:true,direction:"top",className:"gg-mtip"}); fMk.push(mk); bounds.push(c);
       });
       if(driverPos){ var dc=[driverPos.lat,driverPos.lng];
-        fCar=L.marker(dc,{icon:L.divIcon({className:"gg-pin gg-pin-lg car",html:"🚗",iconSize:[34,34],iconAnchor:[17,17]}),zIndexOffset:1200}).addTo(fMap); bounds.push(dc);
+        fCar=L.marker(dc,{icon:L.divIcon({className:"gg-cart-mk",html:'<svg width="36" height="36" viewBox="-18 -18 36 36"><circle cx="0" cy="0" r="15.5" fill="#2b7fd8" stroke="#fff" stroke-width="2.5"/>'+cartGlyph(0,1,23,"#ffffff")+'</svg>',iconSize:[36,36],iconAnchor:[18,18]}),zIndexOffset:1200}).addTo(fMap); bounds.push(dc);
         if(nearestId && rides[nearestId] && rides[nearestId].pickup!=="home"){
           var gc=getComputedStyle(document.documentElement).getPropertyValue("--green").trim()||"#1f9a48";
           fLine=L.polyline([dc, ptCoord(rides[nearestId].pickup)],{color:gc,weight:4,opacity:.9,dashArray:"1 10",lineCap:"round"}).addTo(fMap);
@@ -2269,8 +2392,8 @@
     $("langBtn").addEventListener("click",function(){ lang=(lang==="ar")?"en":"ar"; lsSet(LS_LANG,lang); renderAll(); if(state.driver){ $("driverTitle").textContent=t("driverTitle"); $("driverSub").textContent=t("driverSub"); setLive(!$("liveDot").classList.contains("off")); renderDash(); } });
     $("homeBook").addEventListener("click",goToBooking);
     $("changePickup").addEventListener("click",function(){ $("pickupPicker").classList.toggle("hidden"); });
-    $("minusBtn").addEventListener("click",function(){ if(state.residents>1){state.residents--;renderRes();renderRtypes();updateFare();} });
-    $("plusBtn").addEventListener("click",function(){ if(state.residents<cfg.maxRes){state.residents++;renderRes();renderRtypes();updateFare();} });
+    $("minusBtn").addEventListener("click",function(){ if(state.residents>1){state.residents--;renderRes();renderRtypes();renderWhen();updateFare();} });
+    $("plusBtn").addEventListener("click",function(){ if(state.residents<cfg.maxRes){state.residents++;renderRes();renderRtypes();renderWhen();updateFare();} });
     $("confirmBtn").addEventListener("click",openReview);
     $("revConfirm").addEventListener("click",function(){ closeReview(); doConfirm(); });
     $("revBack").addEventListener("click",closeReview);
@@ -2286,7 +2409,7 @@
     $("addRideBtn").addEventListener("click",toggleAddRide);
     $("arfSave").addEventListener("click",saveManualRide);
     $("arfCancel").addEventListener("click",function(){ $("addRideForm").classList.add("hidden"); });
-    if($("schedTime")) $("schedTime").addEventListener("change",function(){ state.scheduledFor=this.value||null; renderWhen(); });
+    if($("schedTime")) $("schedTime").addEventListener("change",function(){ state.scheduledFor=this.value||null; renderWhen(); updateFare(); });
     $("resendBtn").addEventListener("click",function(){ if(lastBooking) notifyDriver(lastBooking); });
     $("gearBtn").addEventListener("click",function(){ requireAdmin(openAdmin); });
     if(isAdminAuthed()) $("gearBtn").classList.remove("hidden");
