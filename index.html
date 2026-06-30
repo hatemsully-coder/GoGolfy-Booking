@@ -1815,7 +1815,7 @@
       m.on('drag',function(){ var ll=m.getLatLng(); routeEdit[idx].lat=ll.lat; routeEdit[idx].lng=ll.lng; drawRouteLine(); });
       m.on('dragend',function(){ var n=routeEdit.length; routeEdit[idx].man=false; routeEdit[(idx-1+n)%n].man=false; refreshRoute(); });   // moving a checkpoint auto-recomputes its two touching distances
       m.on('click',function(){ openPointPopup(idx,m); });
-      var gbm=gateRef(idx+1); m.bindTooltip((idx+1)+" · "+r.name+(gbm?"  ·  🏢 "+gbm:""),{permanent:true,direction:'top',className:'gg-mtip'});
+      var gbm=gateRef(idx+1); m.bindTooltip((idx+1)+" · "+r.name+(gbm?"  ·  🏢 "+gbm:""),{direction:'top'});
       rMarkers.push(m);
     });
     var V=routeVertices(), len=V.length;
