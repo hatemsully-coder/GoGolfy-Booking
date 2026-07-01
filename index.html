@@ -1048,10 +1048,48 @@ var GG_ROADS=[[[29.96939,31.54328],[29.96952,31.54316],[29.9696,31.54309],[29.96
     11:[[29.968671,31.528891],[29.968672,31.529227],[29.968676,31.53022],[29.968677,31.530604],[29.968677,31.530912],[29.968679,31.531341],[29.968681,31.531707],[29.968682,31.532044],[29.968685,31.532797],[29.968688,31.533394],[29.96869,31.533759],[29.968693,31.534536],[29.968697,31.53553],[29.968697,31.535667],[29.968698,31.535799],[29.968699,31.536129],[29.968704,31.53731]]
   };
   var ROADDIST={1:616,2:825,3:284,4:518,5:530,6:513,7:583,8:590,9:724,10:270,11:875};   // real road distance (m) per baked segment
-  var roadStale={}, roadInvalid=false;   // baked road invalidated by dragging a point (per-segment) or by add/delete/reorder (all)
-  function roadBends(cp){ return (roadInvalid||roadStale[cp]||!ROADGEO[cp])?[]:ROADGEO[cp]; }     // baked road bends for the loop edge cp → cp+1
+  var roadStale={}, roadInvalid=false, routedGeo={};   // baked road invalidated by dragging a point; routedGeo = live-routed bends per edited segment
+  // Road bends for the loop edge cp→cp+1: live-routed path (while editing) > persisted routed path (rvia, after save) > original baked ROADGEO.
+  function roadBends(cp){
+    if(routedGeo[cp]&&routedGeo[cp].length) return routedGeo[cp];
+    var cr=cfg.route&&cfg.route[cp-1]; if(cr&&cr.rvia&&cr.rvia.length) return cr.rvia;
+    return (roadInvalid||roadStale[cp]||!ROADGEO[cp])?[]:ROADGEO[cp];
+  }
   function edgeBends(p,q){ if(q!==p+1) return []; var mv=viaOf(p); return (mv&&mv.length)?mv:roadBends(p); }  // manual corners override the baked road
   function distFactor(){ var f=parseFloat(cfg&&cfg.distFactor); return (f>=1&&f<=3)?f:1.25; }     // straight-line → road multiplier for non-routed segments
+  // ---- client-side road router over the baked OSM network (GG_ROADS): accurate distances that recompute live on add/edit ----
+  var _ggGraph=null;
+  function ggGraph(){
+    if(_ggGraph!==null) return _ggGraph;
+    if(typeof GG_ROADS==="undefined"||!GG_ROADS.length){ _ggGraph=false; return false; }
+    var Q=0.00009;                                   // ~10 m grid → merges roads that meet at an intersection into one node
+    function K(la,ln){ return Math.round(la/Q)+"_"+Math.round(ln/Q); }
+    var pt={}, adj={};
+    function node(la,ln){ var k=K(la,ln); if(!pt[k]){ pt[k]=[la,ln]; adj[k]=[]; } return k; }
+    function link(a,b){ if(a===b) return; var e=adj[a],i; for(i=0;i<e.length;i++){ if(e[i][0]===b) return; } var d=haversine(pt[a],pt[b]); adj[a].push([b,d]); adj[b].push([a,d]); }
+    for(var r=0;r<GG_ROADS.length;r++){ var road=GG_ROADS[r], prev=null;
+      for(var p=0;p<road.length;p++){ var k=node(road[p][0],road[p][1]); if(prev&&prev!==k) link(prev,k); prev=k; } }
+    _ggGraph={pt:pt, adj:adj, keys:Object.keys(pt)};
+    return _ggGraph;
+  }
+  function ggNearest(la,ln){ var g=ggGraph(); if(!g) return null; var best=null,bd=1e18,ks=g.keys;
+    for(var i=0;i<ks.length;i++){ var q=g.pt[ks[i]], a=(q[0]-la)*111000, b=(q[1]-ln)*96500, d=a*a+b*b; if(d<bd){bd=d;best=ks[i];} }
+    return best?{k:best, d:haversine([la,ln],g.pt[best])}:null; }
+  // shortest ROAD distance between two [lat,lng] → {dist, path:[[lat,lng]...] road bends A→B} or null if unroutable
+  function ggRoute(a,b){
+    var g=ggGraph(); if(!g) return null;
+    var sa=ggNearest(a[0],a[1]), sb=ggNearest(b[0],b[1]); if(!sa||!sb) return null;
+    if(sa.k===sb.k) return {dist:sa.d+sb.d, path:[]};
+    var dist={}, prev={}, done={}, ks=g.keys, tgt=sb.k; dist[sa.k]=0;
+    while(true){ var u=null, ud=1e18;
+      for(var i=0;i<ks.length;i++){ var k=ks[i]; if(!done[k]&&dist[k]!=null&&dist[k]<ud){ ud=dist[k]; u=k; } }
+      if(u===null||u===tgt) break; done[u]=true;
+      var e=g.adj[u]; for(var j=0;j<e.length;j++){ var v=e[j][0], nd=ud+e[j][1]; if(dist[v]==null||nd<dist[v]){ dist[v]=nd; prev[v]=u; } }
+    }
+    if(dist[tgt]==null||!isFinite(dist[tgt])) return null;
+    var path=[], cur=tgt; while(cur){ path.unshift(g.pt[cur].slice()); cur=(cur===sa.k)?null:prev[cur]; }   // sa.k … sb.k inclusive
+    return {dist: dist[tgt]+sa.d+sb.d, path: path};
+  }
   var N=CHECKPOINTS.length;  // recomputed from cfg.route after cfg loads
   function segOf(i){ if(cfg.route&&cfg.route[i-1]) return Number(cfg.route[i-1].seg)||0; return DEFAULT_SEG[i-1]||0; }
   function viaOf(i){ var r=cfg.route&&cfg.route[i-1]; return (r&&r.via&&r.via.length)?r.via:[]; }  // road bends from point i to next (1-based)
@@ -2141,7 +2179,7 @@ var GG_ROADS=[[[29.96939,31.54328],[29.96952,31.54316],[29.9696,31.54309],[29.96
   function ptCoord(i){ var r=cfg.route&&cfg.route[i-1]; if(r&&r.lat!=null&&r.lng!=null) return [r.lat,r.lng]; var c=CHECKPOINTS[i-1]; return c?[c.lat,c.lng]:[29.9726,31.5268]; }
   function haversine(a,b){ var R=6371000,toR=Math.PI/180; var dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR; var la1=a[0]*toR,la2=b[0]*toR; var h=Math.pow(Math.sin(dLa/2),2)+Math.cos(la1)*Math.cos(la2)*Math.pow(Math.sin(dLo/2),2); return 2*R*Math.asin(Math.sqrt(h)); }
   // man=false → distance is AUTO-computed from the point positions (recalcSegs); only an explicitly typed value pins a segment (man=true).
-  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); var sv=(cfg.route&&cfg.route[i-1])||null; routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), man:(sv?!!sv.man:false), via:viaOf(i).map(function(p){return [p[0],p[1]];}) }); } }
+  function buildRouteEdit(){ routeEdit=[]; for(var i=1;i<=N;i++){ var c=ptCoord(i); var sv=(cfg.route&&cfg.route[i-1])||null; routeEdit.push({ name:cpName(i), lat:c[0], lng:c[1], seg:segOf(i), man:(sv?!!sv.man:false), via:viaOf(i).map(function(p){return [p[0],p[1]];}), rvia:(sv&&sv.rvia&&sv.rvia.length)?sv.rvia.map(function(p){return [p[0],p[1]];}):null }); } }
   function reSegPath(idx){ var n=routeEdit.length, a=routeEdit[idx], b=routeEdit[(idx+1)%n]; var pts=[[a.lat,a.lng]]; (a.via||[]).forEach(function(p){pts.push(p);}); pts.push([b.lat,b.lng]); return pts; }
   function pathLen(pts){ var d=0; for(var k=1;k<pts.length;k++) d+=haversine(pts[k-1],pts[k]); return d; }
   // Auto-compute every loop leg from the point positions. The HUB is off-loop (excluded from the ring), so each loop
@@ -2153,10 +2191,14 @@ var GG_ROADS=[[[29.96939,31.54328],[29.96952,31.54316],[29.9696,31.54309],[29.96
     for(var k=0;k<loop.length;k++){
       var a=loop[k], b=loop[(k+1)%loop.length];           // next loop point (hub skipped)
       if(routeEdit[a].man) continue;
-      var via=routeEdit[a].via||[], cp=a+1, d;
-      if(via.length){ var pts=[[routeEdit[a].lat,routeEdit[a].lng]]; via.forEach(function(p){ pts.push(p); }); pts.push([routeEdit[b].lat,routeEdit[b].lng]); d=pathLen(pts); }      // manual-traced road
-      else if(ROADDIST[cp] && !roadStale[cp] && !roadInvalid){ d=ROADDIST[cp]; }                                                                                                  // baked real road distance
-      else { d=haversine([routeEdit[a].lat,routeEdit[a].lng],[routeEdit[b].lat,routeEdit[b].lng])*distFactor(); }                                                                  // straight-line × factor
+      var via=routeEdit[a].via||[], cp=a+1, d, pa=[routeEdit[a].lat,routeEdit[a].lng], pb=[routeEdit[b].lat,routeEdit[b].lng];
+      if(via.length){ var pts=[pa]; via.forEach(function(p){ pts.push(p); }); pts.push(pb); d=pathLen(pts); routedGeo[cp]=null; routeEdit[a].rvia=null; }                          // manual-traced road
+      else if(ROADDIST[cp] && !roadStale[cp] && !roadInvalid){ d=ROADDIST[cp]; routedGeo[cp]=null; routeEdit[a].rvia=null; }                                                       // baked real road distance (original, un-moved point)
+      else {                                                                                                                                                                       // point added/moved → route over the real road network
+        var straight=haversine(pa,pb), rt=ggRoute(pa,pb);
+        if(rt && rt.dist>=straight*0.85 && rt.dist<=straight*5){ d=rt.dist; routedGeo[cp]=rt.path; routeEdit[a].rvia=rt.path; }                                                    // accurate live road distance + road-following line
+        else { d=straight*distFactor(); routedGeo[cp]=null; routeEdit[a].rvia=null; }                                                                                             // unroutable → straight-line × factor
+      }
       routeEdit[a].seg=Math.round(d/5)*5;
     }
     if(!routeEdit[h].man) routeEdit[h].seg=0;              // hub's own leg is unused (hub routes direct)
@@ -2295,7 +2337,7 @@ var GG_ROADS=[[[29.96939,31.54328],[29.96952,31.54316],[29.9696,31.54309],[29.96
     if($("cfgWorkEnd")){ var we=Number($("cfgWorkEnd").value); cfg.workEnd=(we>=1&&we<=24)?we:24; }
     if(routeEdit&&routeEdit.length){
       recalcSegs();   // auto-fill only segments NOT manually typed (man flag); typed values are preserved
-      cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); if(r.man) o.man=true; return o; });
+      cfg.route=routeEdit.map(function(r){ var o={ name:(r.name||"").trim()||"Point", seg:Number(r.seg)||0, lat:r.lat, lng:r.lng }; if(r.via&&r.via.length) o.via=r.via.map(function(p){return [p[0],p[1]];}); if(r.rvia&&r.rvia.length) o.rvia=r.rvia.map(function(p){return [p[0],p[1]];}); if(r.man) o.man=true; return o; });
     }
     cfg.labels=[];
     N=(cfg.route&&cfg.route.length)?cfg.route.length:CHECKPOINTS.length;
